@@ -35,3 +35,6 @@ firestore-debug.log
 
 # Vite PWA
 dev-dist/
+
+# Agent temp files
+.agents/
