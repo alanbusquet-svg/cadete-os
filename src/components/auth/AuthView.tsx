@@ -15,6 +15,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
+import { PWAInstallButton } from '../common/PWAInstallButton';
 
 function getErrorMessage(err: unknown): string {
   const errorString = String(err);
@@ -305,6 +306,11 @@ export const AuthView: React.FC = () => {
           <span className="text-[11px] text-zinc-500 block">
             Tus datos se guardarán de forma local en este dispositivo.
           </span>
+        </div>
+
+        {/* PWA Download / Install Button */}
+        <div className="pt-1">
+          <PWAInstallButton variant="full" />
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { useFinancials } from '../../hooks/useFinancials';
 import { formatDateAR, getTodayDateString, formatCurrency } from '../../utils/formatting';
 import { getPreviousDate, getNextDate } from '../../utils/date';
 import { isSpeechMuted, toggleSpeechMuted } from '../../utils/speech';
+import { PWAInstallButton } from '../common/PWAInstallButton';
 import { cn } from '../../lib/utils';
 
 export const Header: React.FC = () => {
@@ -64,6 +65,9 @@ export const Header: React.FC = () => {
 
         {/* Right side: Auth/Trial Pill, Date Navigator & Net Stat */}
         <div className="flex items-center gap-2 md:gap-3">
+          {/* PWA Download / Install Button */}
+          <PWAInstallButton variant="header" />
+
           {/* Trial / Demo Status Pill */}
           {isDemoMode ? (
             <button

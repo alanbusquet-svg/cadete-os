@@ -15,9 +15,11 @@ import {
   AlertCircle,
   Target,
   Volume2,
-  VolumeX
+  VolumeX,
+  Smartphone
 } from 'lucide-react';
 import { isSpeechMuted, setSpeechMuted, speakText } from '../../utils/speech';
+import { PWAInstallButton } from '../common/PWAInstallButton';
 
 export const SettingsView: React.FC = () => {
   const { user, updateProfile } = useAuth();
@@ -262,7 +264,24 @@ export const SettingsView: React.FC = () => {
             </div>
           </div>
 
-          {/* 3. Asistente de Voz */}
+          {/* 3. Aplicación Móvil (PWA) */}
+          <div className="bg-gradient-to-br from-emerald-950/40 via-zinc-900 to-zinc-900 border border-emerald-500/30 rounded-3xl p-5 space-y-3 shadow-lg">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                <Smartphone className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col">
+                <h3 className="text-sm font-bold text-zinc-100">Aplicación Móvil (PWA)</h3>
+                <span className="text-[11px] text-zinc-400">Instalá Cadete OS directo en tu celular</span>
+              </div>
+            </div>
+            <p className="text-xs text-zinc-300">
+              Instalá la aplicación en tu pantalla de inicio para usarla a pantalla completa, con acceso en 1 toque y modo offline sin barras del navegador.
+            </p>
+            <PWAInstallButton variant="settings" />
+          </div>
+
+          {/* 4. Asistente de Voz */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 space-y-4 shadow-lg">
             <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
               <Volume2 className="w-4 h-4 text-emerald-400" />
