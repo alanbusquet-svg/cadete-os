@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, type ReactNode }
 import {
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   GoogleAuthProvider,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -139,7 +140,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    await signInWithPopup(auth, provider);
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (err: unknown) {
+      const errString = String(err);
+      if (errString.includes('auth/popup-blocked')) {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+      throw err;
+    }
   };
 
   const signInWithEmail = async (email: string, pass: string) => {
