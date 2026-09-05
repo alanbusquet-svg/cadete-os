@@ -1,35 +1,36 @@
-import React from 'react';
-import { Bike, Calendar, ChevronLeft, ChevronRight, LogOut, Sparkles, Zap } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bike, Calendar, ChevronLeft, ChevronRight, LogOut, Sparkles, Zap, Volume2, VolumeX } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useFinancials } from '../../hooks/useFinancials';
 import { formatDateAR, getTodayDateString, formatCurrency } from '../../utils/formatting';
+import { getPreviousDate, getNextDate } from '../../utils/date';
+import { isSpeechMuted, toggleSpeechMuted } from '../../utils/speech';
+import { cn } from '../../lib/utils';
 
 export const Header: React.FC = () => {
   const { selectedDate, setSelectedDate } = useData();
   const { isDemoMode, trialInfo, logout, exitDemoMode } = useAuth();
   const { summary } = useFinancials();
+  const [speechMuted, setSpeechMuted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setSpeechMuted(isSpeechMuted());
+  }, []);
+
+  const handleToggleSpeech = () => {
+    const next = toggleSpeechMuted();
+    setSpeechMuted(next);
+  };
 
   const isToday = selectedDate === getTodayDateString();
 
   const handlePrevDay = () => {
-    const parts = selectedDate.split('-').map(Number);
-    const date = new Date(parts[0] || new Date().getFullYear(), (parts[1] || 1) - 1, parts[2] || 1);
-    date.setDate(date.getDate() - 1);
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    setSelectedDate(`${y}-${m}-${d}`);
+    setSelectedDate(getPreviousDate(selectedDate));
   };
 
   const handleNextDay = () => {
-    const parts = selectedDate.split('-').map(Number);
-    const date = new Date(parts[0] || new Date().getFullYear(), (parts[1] || 1) - 1, parts[2] || 1);
-    date.setDate(date.getDate() + 1);
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    setSelectedDate(`${y}-${m}-${d}`);
+    setSelectedDate(getNextDate(selectedDate, getTodayDateString()));
   };
 
   const handleGoToday = () => {
@@ -157,6 +158,22 @@ export const Header: React.FC = () => {
               {formatCurrency(summary.netProfit)}
             </span>
           </div>
+
+          {/* Voice Assistant Mute Toggle Button */}
+          <button
+            type="button"
+            onClick={handleToggleSpeech}
+            className={cn(
+              'w-8 h-8 rounded-xl border flex items-center justify-center transition-colors shrink-0',
+              speechMuted
+                ? 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
+                : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25'
+            )}
+            title={speechMuted ? 'Asistente de voz silenciado (clic para activar)' : 'Asistente de voz activado (clic para silenciar)'}
+            aria-label={speechMuted ? 'Activar asistente de voz' : 'Silenciar asistente de voz'}
+          >
+            {speechMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
 
           {/* Logout / Exit button */}
           <button

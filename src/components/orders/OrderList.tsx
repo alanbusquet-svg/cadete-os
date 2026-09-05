@@ -1,17 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Plus, Bike, Search, CheckCircle2 } from 'lucide-react';
+import { useData } from '../../context/DataContext';
 import { useOrders } from '../../hooks/useOrders';
 import { OrderCard } from './OrderCard';
 import { OrderFormModal } from './OrderFormModal';
+import { OrderMapModal } from '../map/OrderMapModal';
 import { Button } from '../common/Button';
 import { ConfirmDialog } from '../common/ConfirmDialog';
-import { formatCurrency, formatDateAR } from '../../utils/formatting';
+import { formatCurrency, formatDateAR, getTodayDateString } from '../../utils/formatting';
+import { getPreviousDate, getNextDate, isInteractiveElement, evaluateSwipeGesture } from '../../utils/date';
+import type { Order } from '../../types';
+import { cn } from '../../lib/utils';
 
 export const OrderList: React.FC = () => {
+  const { setSelectedDate } = useData();
   const { dayOrders, selectedDate, updateOrder, deleteOrder } = useOrders();
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [selectedOrderForMap, setSelectedOrderForMap] = useState<Order | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
+
+  // Swipe gesture state (R2)
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const [isSwiping, setIsSwiping] = useState<boolean>(false);
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
 
   const totalDayRevenue = dayOrders.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
   const settledOrdersCount = dayOrders.filter((o) => o.settled).length;
@@ -42,8 +54,73 @@ export const OrderList: React.FC = () => {
     }
   };
 
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length !== 1) return;
+    if (isInteractiveElement(e.target)) {
+      touchStartRef.current = null;
+      return;
+    }
+    const touch = e.touches[0];
+    if (touch) {
+      touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!touchStartRef.current) return;
+    const touch = e.changedTouches[0];
+    if (!touch) {
+      touchStartRef.current = null;
+      return;
+    }
+
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    touchStartRef.current = null;
+
+    const action = evaluateSwipeGesture(deltaX, deltaY, 50);
+    if (action === 'prev_day') {
+      setSwipeDirection('right');
+      setIsSwiping(true);
+      setSelectedDate(getPreviousDate(selectedDate));
+      setTimeout(() => {
+        setIsSwiping(false);
+        setSwipeDirection(null);
+      }, 150);
+    } else if (action === 'next_day') {
+      const todayStr = getTodayDateString();
+      if (selectedDate < todayStr) {
+        setSwipeDirection('left');
+        setIsSwiping(true);
+        setSelectedDate(getNextDate(selectedDate, todayStr));
+        setTimeout(() => {
+          setIsSwiping(false);
+          setSwipeDirection(null);
+        }, 150);
+      }
+    }
+  };
+
+  const handleTouchCancel = () => {
+    touchStartRef.current = null;
+    setIsSwiping(false);
+    setSwipeDirection(null);
+  };
+
   return (
-    <div className="space-y-5">
+    <div
+      className={cn(
+        'space-y-5 transition-all duration-150 ease-out',
+        isSwiping
+          ? swipeDirection === 'right'
+            ? 'opacity-85 translate-x-1'
+            : 'opacity-85 -translate-x-1'
+          : 'opacity-100 translate-x-0'
+      )}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchCancel}
+    >
       {/* Header Metric Banner */}
       <div className="bg-gradient-to-br from-zinc-900 to-zinc-900/90 border border-zinc-800 rounded-3xl p-5 shadow-lg">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -74,7 +151,7 @@ export const OrderList: React.FC = () => {
               </span>
             </div>
 
-            {/* Primary CTA button */}
+            {/* Primary CTA button (Header) */}
             <Button
               variant="primary"
               size="lg"
@@ -112,6 +189,7 @@ export const OrderList: React.FC = () => {
               order={order}
               onSettleToggle={handleSettleToggle}
               onDelete={handleDelete}
+              onViewOnMap={(ord) => setSelectedOrderForMap(ord)}
             />
           ))}
         </div>
@@ -143,10 +221,28 @@ export const OrderList: React.FC = () => {
         </div>
       )}
 
+      {/* Floating Action Button (R1 - Mobile bottom-left for left-thumb reach) */}
+      <button
+        type="button"
+        onClick={() => setIsModalOpen(true)}
+        aria-label="Registrar Viaje"
+        title="Registrar Viaje"
+        className="fixed bottom-20 left-4 z-40 md:hidden flex items-center justify-center min-w-[60px] min-h-[60px] w-[60px] h-[60px] rounded-full bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 active:scale-95 transition-transform text-zinc-950 shadow-xl shadow-emerald-950/60 border border-emerald-400/40 select-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-zinc-950"
+      >
+        <Plus className="w-8 h-8 stroke-[3]" />
+      </button>
+
       {/* Modal Carga de Viaje */}
       <OrderFormModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+      />
+
+      {/* Modal Mapa y Ruta In-App */}
+      <OrderMapModal
+        isOpen={selectedOrderForMap !== null}
+        onClose={() => setSelectedOrderForMap(null)}
+        order={selectedOrderForMap}
       />
 
       {/* Modal Confirmación de Eliminación */}

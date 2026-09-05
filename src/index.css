@@ -45,3 +45,78 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #3f3f46;
 }
+
+/* Leaflet Map Dark Mode Container & Controls */
+.leaflet-container {
+  background-color: #09090b !important;
+  font-family: inherit;
+  outline: none;
+}
+
+/* Dark mode popup styling */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background-color: #18181b !important; /* bg-zinc-900 */
+  color: #f4f4f5 !important;
+  border: 1px solid #27272a;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.8) !important;
+  border-radius: 1rem !important;
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px !important;
+  line-height: 1.4 !important;
+  font-size: 13px !important;
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  color: #a1a1aa !important;
+  padding: 8px !important;
+}
+
+.leaflet-container a.leaflet-popup-close-button:hover {
+  color: #ffffff !important;
+}
+
+/* Dark mode zoom buttons */
+.leaflet-bar {
+  border: 1px solid #27272a !important;
+  border-radius: 1rem !important;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+.leaflet-bar a {
+  background-color: #18181b !important;
+  color: #f4f4f5 !important;
+  border-bottom: 1px solid #27272a !important;
+  width: 38px !important;
+  height: 38px !important;
+  line-height: 38px !important;
+}
+
+.leaflet-bar a:hover {
+  background-color: #27272a !important;
+  color: #34d399 !important;
+}
+
+/* Dark mode attribution */
+.leaflet-control-attribution {
+  background-color: rgba(9, 9, 11, 0.85) !important;
+  color: #71717a !important;
+  font-size: 10px !important;
+  padding: 2px 8px !important;
+  border-top-left-radius: 8px;
+}
+
+.leaflet-control-attribution a {
+  color: #a1a1aa !important;
+  text-decoration: none;
+}
+
+/* Reset marker pin container for custom divIcons */
+.cadete-gps-pin,
+.order-map-pin {
+  background: transparent !important;
+  border: none !important;
+}

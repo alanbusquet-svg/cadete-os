@@ -25,10 +25,10 @@ export const AppShell: React.FC<AppShellProps> = ({
         <Header />
         
         {/* Responsive Content Container:
-            Mobile: max-w-md centered with bottom padding for BottomNav
-            Desktop: full width max-w-7xl with generous padding
+            Mobile: max-w-md centered with bottom padding for BottomNav (pb-28)
+            Desktop: full width max-w-7xl with generous padding and 0 bottom padding (md:pb-0)
         */}
-        <main className="flex-1 w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 pt-4 pb-28 md:pb-12 space-y-5">
+        <main className="flex-1 w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 pt-4 pb-28 md:pb-0 space-y-5">
           {children}
         </main>
 

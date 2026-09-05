@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bike, Wallet, Store, Wrench, Settings, ShieldCheck, ChevronRight, Sparkles, Zap, LogOut } from 'lucide-react';
+import { Bike, Map, Wallet, Store, Wrench, Settings, ShieldCheck, ChevronRight, Sparkles, Zap, LogOut } from 'lucide-react';
 import type { ActiveTab } from '../../types';
 import { useOrders } from '../../hooks/useOrders';
 import { useBusinesses } from '../../hooks/useBusinesses';
@@ -25,9 +25,17 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ activeTab, onSelectTab }
     {
       id: 'orders' as ActiveTab,
       label: 'Viajes',
-      description: 'Carga rápida y mapa GPS',
+      description: 'Carga rápida e historial',
       icon: Bike,
       badge: dayOrders.length > 0 ? `${dayOrders.length}` : null,
+      badgeColor: 'bg-emerald-500 text-zinc-950'
+    },
+    {
+      id: 'map' as ActiveTab,
+      label: 'Mapa en Vivo',
+      description: 'GPS y entregas en Bolívar',
+      icon: Map,
+      badge: dayOrders.filter((o) => !o.settled).length > 0 ? `${dayOrders.filter((o) => !o.settled).length}` : null,
       badgeColor: 'bg-emerald-500 text-zinc-950'
     },
     {

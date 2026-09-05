@@ -182,4 +182,4 @@ export interface OilOdometerStatus {
   totalHistoricalOrders: number;
 }
 
-export type ActiveTab = "orders" | "finance" | "businesses" | "maintenance" | "settings";
+export type ActiveTab = "orders" | "map" | "finance" | "businesses" | "maintenance" | "settings";

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   Navigation,
   MapPin,
+  Map,
   CheckCircle2,
   Clock,
   Trash2,
@@ -13,24 +14,31 @@ import type { Order } from '../../types';
 import { formatCurrency, formatTime, getZoneLabel } from '../../utils/formatting';
 import { openNavigation, isValidAddress } from '../../utils/navigation';
 import { buildCustomerWhatsAppUrl } from '../../utils/whatsapp';
+import { speakOrder } from '../../utils/speech';
 import { useAuth } from '../../context/AuthContext';
 import { Badge } from '../common/Badge';
+import { OrderMapModal } from '../map/OrderMapModal';
+import { cn } from '../../lib/utils';
 
 export interface OrderCardProps {
   order: Order;
   onSettleToggle?: (orderId: string, currentSettled: boolean) => void;
   onDelete?: (orderId: string) => void;
+  onViewOnMap?: (order: Order) => void;
 }
 
 export const OrderCard: React.FC<OrderCardProps> = ({
   order,
   onSettleToggle,
-  onDelete
+  onDelete,
+  onViewOnMap
 }) => {
   const { user } = useAuth();
-  const city = user.settings?.cityDefault || 'San Carlos de Bolívar';
-  const country = user.settings?.countryDefault || 'Argentina';
+  const city = user?.settings?.cityDefault || 'San Carlos de Bolívar';
+  const country = user?.settings?.countryDefault || 'Argentina';
   const [showNavMenu, setShowNavMenu] = useState<boolean>(false);
+  const [isInternalMapOpen, setIsInternalMapOpen] = useState<boolean>(false);
+
   const hasAddress = isValidAddress(order.address);
   const hasCustomerPhone = Boolean(order.customerPhone && order.customerPhone.trim());
 
@@ -38,6 +46,20 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     if (!order.address) return;
     openNavigation(order.address, provider, city, country);
     setShowNavMenu(false);
+  };
+
+  const handleOpenMap = () => {
+    try {
+      speakOrder(order);
+    } catch {
+      // Safe fallback
+    }
+
+    if (onViewOnMap) {
+      onViewOnMap(order);
+    } else {
+      setIsInternalMapOpen(true);
+    }
   };
 
   const handleWhatsAppCustomer = () => {
@@ -115,7 +137,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         )}
       </div>
 
-      {/* R3: Prominent WhatsApp "Estoy afuera 🛵" Button (when customerPhone is present) */}
+      {/* WhatsApp Button (when customerPhone is present) */}
       {hasCustomerPhone && (
         <div className="pt-1">
           <button
@@ -133,34 +155,46 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         </div>
       )}
 
-      {/* Action bar: 1-Tap Navigation & Quick Actions */}
-      <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-800/60">
-        {/* GPS Navigation button */}
-        {hasAddress ? (
-          <div className="relative flex-1">
+      {/* Row 1: Map Navigation Row (when hasAddress) */}
+      {hasAddress && (
+        <div className="flex items-center gap-2 pt-2 border-t border-zinc-800/60">
+          {/* Primary Action: Ver en Mapa (Left-Thumb Ergonomic, >=52px touch target) */}
+          <button
+            type="button"
+            onClick={handleOpenMap}
+            className="flex-1 min-h-[52px] px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black text-sm flex items-center justify-center gap-2 shadow-sm shadow-emerald-950/20 active:scale-[0.98] transition-all"
+            aria-label={`Ver en mapa viaje a ${order.address}`}
+          >
+            <Map className="w-4 h-4 stroke-[2.5]" />
+            <span>Ver en Mapa</span>
+          </button>
+
+          {/* Secondary Action: External Navigation (Google Maps / Waze) */}
+          <div className="relative shrink-0">
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => handleNavigate('google')}
-                className="flex-1 min-h-[52px] px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] transition-all"
+                className="min-h-[52px] px-3.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/80 font-semibold text-xs flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all"
+                title="Abrir en Google Maps"
               >
-                <Navigation className="w-4 h-4 fill-zinc-950" />
+                <Navigation className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Cómo ir</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setShowNavMenu(!showNavMenu)}
-                className="min-h-[52px] w-12 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center transition-colors shrink-0"
+                className="min-h-[52px] w-10 rounded-2xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 flex items-center justify-center border border-zinc-700/80 transition-colors"
                 title="Elegir aplicación de mapas"
               >
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            {/* Maps Dropdown popup */}
+            {/* Dropdown for external maps */}
             {showNavMenu && (
-              <div className="absolute left-0 bottom-full mb-2 w-48 bg-zinc-900 border border-zinc-700 rounded-2xl p-1.5 shadow-xl z-20 space-y-1">
+              <div className="absolute right-0 bottom-full mb-2 w-48 bg-zinc-900 border border-zinc-700 rounded-2xl p-1.5 shadow-xl z-20 space-y-1">
                 <button
                   type="button"
                   onClick={() => handleNavigate('google')}
@@ -180,19 +214,32 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               </div>
             )}
           </div>
-        ) : (
-          <div className="flex-1 text-xs text-zinc-400 font-medium py-2">
+        </div>
+      )}
+
+      {/* Row 2: Status & Management (Cobrar / Pendiente + Eliminar) */}
+      <div
+        className={cn(
+          'flex items-center justify-between gap-2',
+          !hasAddress ? 'pt-2 border-t border-zinc-800/60' : 'pt-1'
+        )}
+      >
+        {!hasAddress ? (
+          <span className="text-xs text-zinc-400 font-medium py-2 italic">
             Sin ruta GPS
+          </span>
+        ) : (
+          <div className="text-[11px] text-zinc-400 font-medium">
+            <span>{city}</span>
           </div>
         )}
 
-        {/* Secondary controls */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 ml-auto">
           {onSettleToggle && (
             <button
               type="button"
               onClick={() => onSettleToggle(order.id, order.settled)}
-              className="min-h-[52px] px-3.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-300 transition-colors"
+              className="min-h-[52px] px-4 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-300 transition-colors active:scale-95"
               title={order.settled ? 'Marcar como pendiente' : 'Marcar como cobrado'}
             >
               {order.settled ? 'Pendiente' : 'Cobrar'}
@@ -203,7 +250,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             <button
               type="button"
               onClick={() => onDelete(order.id)}
-              className="min-h-[52px] w-12 rounded-2xl bg-zinc-800/80 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 flex items-center justify-center transition-colors"
+              className="min-h-[52px] w-12 rounded-2xl bg-zinc-800/80 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 flex items-center justify-center transition-colors active:scale-95"
               title="Eliminar viaje"
             >
               <Trash2 className="w-4 h-4" />
@@ -211,6 +258,16 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           )}
         </div>
       </div>
+
+      {/* Fallback Internal Modal (if not controlled by parent) */}
+      {!onViewOnMap && isInternalMapOpen && (
+        <OrderMapModal
+          isOpen={isInternalMapOpen}
+          onClose={() => setIsInternalMapOpen(false)}
+          order={order}
+        />
+      )}
     </div>
   );
 };
+

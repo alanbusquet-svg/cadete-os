@@ -7,6 +7,7 @@ import { ExpenseList } from './components/finance/ExpenseList';
 import { BusinessList } from './components/businesses/BusinessList';
 import { MaintenanceList } from './components/maintenance/MaintenanceList';
 import { SettingsView } from './components/settings/SettingsView';
+import { MapView } from './components/map/MapView';
 import { AuthView } from './components/auth/AuthView';
 import type { ActiveTab } from './types';
 import { Bike, Loader2 } from 'lucide-react';
@@ -36,6 +37,7 @@ export const AppContent: React.FC = () => {
   return (
     <AppShell activeTab={activeTab} onSelectTab={setActiveTab}>
       {activeTab === 'orders' && <OrderList />}
+      {activeTab === 'map' && <MapView />}
       {activeTab === 'finance' && <ExpenseList />}
       {activeTab === 'businesses' && <BusinessList />}
       {activeTab === 'maintenance' && <MaintenanceList />}

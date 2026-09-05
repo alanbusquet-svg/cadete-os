@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AlertTriangle, CheckCircle, Flame, RotateCcw } from 'lucide-react';
 import { useOilTracker } from '../../hooks/useOilTracker';
 import { Button } from '../common/Button';
+import { ConfirmDialog } from '../common/ConfirmDialog';
 import { formatDateAR } from '../../utils/formatting';
 
 export interface OilOdometerCardProps {
@@ -21,14 +22,19 @@ export const OilOdometerCard: React.FC<OilOdometerCardProps> = ({ onQuickReset }
     recordOilChange
   } = useOilTracker();
 
+  const [isConfirmOpen, setIsConfirmOpen] = useState<boolean>(false);
+
   const handleReset = () => {
     if (onQuickReset) {
       onQuickReset();
       return;
     }
-    if (window.confirm('¿Confirmar cambio de aceite? Esto reiniciará el contador virtual a 0 pedidos y 0 días.')) {
-      recordOilChange('Cambio de Aceite (Reset Rápido)', 0);
-    }
+    setIsConfirmOpen(true);
+  };
+
+  const handleConfirmReset = () => {
+    recordOilChange('Cambio de Aceite (Reset Rápido)', 0);
+    setIsConfirmOpen(false);
   };
 
   const statusConfig = {
@@ -161,6 +167,18 @@ export const OilOdometerCard: React.FC<OilOdometerCardProps> = ({ onQuickReset }
           Cambiar Aceite (Reset)
         </Button>
       </div>
+
+      {/* Confirm Dialog for Quick Oil Reset */}
+      <ConfirmDialog
+        isOpen={isConfirmOpen}
+        title="Cambiar Aceite"
+        message="¿Registrar cambio de aceite? El contador virtual se reiniciará a 0 viajes y 0 días desde hoy."
+        confirmLabel="Confirmar Reset"
+        cancelLabel="Cancelar"
+        confirmVariant="danger"
+        onConfirm={handleConfirmReset}
+        onCancel={() => setIsConfirmOpen(false)}
+      />
     </div>
   );
 };

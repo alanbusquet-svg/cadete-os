@@ -13,14 +13,18 @@ import {
   RotateCcw,
   CheckCircle2,
   AlertCircle,
-  Target
+  Target,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
+import { isSpeechMuted, setSpeechMuted, speakText } from '../../utils/speech';
 
 export const SettingsView: React.FC = () => {
   const { user, updateProfile } = useAuth();
   const { exportData, importData, resetData } = useData();
 
   const [displayName, setDisplayName] = useState<string>(user.displayName || 'Cadete Bolívar');
+  const [speechMuted, setSpeechMutedState] = useState<boolean>(isSpeechMuted());
   const [dailyGoal, setDailyGoal] = useState<string>(
     user.settings?.dailyGoal ? String(user.settings.dailyGoal) : ''
   );
@@ -96,6 +100,17 @@ export const SettingsView: React.FC = () => {
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleToggleVoice = () => {
+    const next = !speechMuted;
+    setSpeechMuted(next);
+    setSpeechMutedState(next);
+    showNotification('success', next ? 'Asistente de voz silenciado' : 'Asistente de voz activado');
+  };
+
+  const handleTestVoice = () => {
+    speakText('Asistente de voz de Cadete OS operativo en Bolívar.');
   };
 
   const handleResetData = () => {
@@ -247,7 +262,60 @@ export const SettingsView: React.FC = () => {
             </div>
           </div>
 
-          {/* 3. Reset Demo Data */}
+          {/* 3. Asistente de Voz */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 space-y-4 shadow-lg">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+              <Volume2 className="w-4 h-4 text-emerald-400" />
+              <span>Asistente de Voz (Web Speech API)</span>
+            </h3>
+            <p className="text-xs text-zinc-400">
+              Lee en voz alta destinos y montos al tocar pedidos y confirma viajes cargados en español argentino.
+            </p>
+
+            <div className="flex items-center justify-between p-3 bg-zinc-950/80 rounded-2xl border border-zinc-800">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                    speechMuted ? 'bg-zinc-800 text-zinc-500' : 'bg-emerald-500/20 text-emerald-400'
+                  }`}
+                >
+                  {speechMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-zinc-200">
+                    {speechMuted ? 'Voz desactivada' : 'Voz activada'}
+                  </span>
+                  <span className="text-[10px] text-zinc-400">
+                    {speechMuted ? 'Silenciado' : 'Español argentino (es-AR)'}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleToggleVoice}
+                className={`min-h-[44px] px-4 rounded-xl text-xs font-bold transition-colors ${
+                  speechMuted
+                    ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200'
+                    : 'bg-emerald-500 hover:bg-emerald-400 text-zinc-950'
+                }`}
+              >
+                {speechMuted ? 'Activar' : 'Silenciar'}
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleTestVoice}
+              disabled={speechMuted}
+              className="w-full min-h-[44px] px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-zinc-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+            >
+              <Volume2 className="w-4 h-4 text-emerald-400" />
+              <span>Probar locución de audio</span>
+            </button>
+          </div>
+
+          {/* 4. Reset Demo Data */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 space-y-3 shadow-lg">
             <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
               Zona de Mantenimiento
