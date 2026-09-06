@@ -198,7 +198,7 @@ describe('Adversarial Stress Testing: Geolocation & Coordinate Resolution', () =
       maxLng: -61.085
     };
 
-    it('guarantees that all 22 static anchors lie strictly within Bolívar bounding box', () => {
+    it('guarantees that all static anchors lie strictly within Bolívar bounding box', () => {
       for (const [name, coords] of Object.entries(BOLIVAR_ANCHORS)) {
         expect(coords[0], `Anchor ${name} lat out of bounds`).toBeGreaterThanOrEqual(BOLIVAR_BOUNDS.minLat);
         expect(coords[0], `Anchor ${name} lat out of bounds`).toBeLessThanOrEqual(BOLIVAR_BOUNDS.maxLat);
@@ -465,6 +465,75 @@ describe('Adversarial Stress Testing: Geolocation & Coordinate Resolution', () =
       mockClear(id);
       expect(activeWatches.has(100)).toBe(false);
     });
+  });
+});
+
+describe('R2: Expanded Bolívar Offline Geocoding (>= 60 anchors)', () => {
+  const baseOrder: Order = {
+    id: 'ord_geocoding_test',
+    userId: 'usr_test',
+    date: '2026-09-06',
+    timestamp: Date.now(),
+    businessId: 'biz_1',
+    businessName: 'Delivery Test',
+    zone: 'planta_urbana',
+    amount: 1500,
+    paidBy: 'customer',
+    paymentMethod: 'cash',
+    settled: false
+  };
+
+  it('contains at least 60 anchor entries in BOLIVAR_ANCHORS', () => {
+    const totalAnchors = Object.keys(BOLIVAR_ANCHORS).length;
+    expect(totalAnchors).toBeGreaterThanOrEqual(60);
+  });
+
+  it('verifies all required R2 streets are present in BOLIVAR_ANCHORS', () => {
+    const requiredKeys = [
+      'colon', 'necochea', 'independencia', 'dorrego', 'ameghino',
+      'quintana', 'perito moreno', 'carlos pellegrini', 'laprida',
+      'espana', 'italia', 'francia', 'pringles', '25 de mayo',
+      '9 de julio', '12 de octubre', 'alberdi', 'avellaneda',
+      'chacabuco', 'constitucion', 'echeverria', 'falucho', 'garay',
+      'humahuaca', 'irigoyen', 'juncal', 'kirchner', 'lima', 'melo',
+      'nacion', 'obispo', 'pastor', 'quito', 'reconquista', 'salta',
+      'tucuman', 'uruguay', 'velez sarsfield', 'washington', 'yrigoyen',
+      'parque industrial', 'villa del parque', 'la loma'
+    ];
+
+    for (const key of requiredKeys) {
+      expect(BOLIVAR_ANCHORS[key], `Missing anchor key: ${key}`).toBeDefined();
+    }
+  });
+
+  it('resolves coordinates for newly added streets without returning BOLIVAR_CENTER fallback', () => {
+    const testCases: Array<{ address: string; expectedAnchor: string }> = [
+      { address: 'Colón 525', expectedAnchor: 'colon' },
+      { address: 'Necochea 300', expectedAnchor: 'necochea' },
+      { address: 'Dorrego 500', expectedAnchor: 'dorrego' },
+      { address: 'Av. 25 de Mayo 400', expectedAnchor: '25 de mayo' },
+      { address: '9 de Julio 120', expectedAnchor: '9 de julio' },
+      { address: 'Humahuaca 800', expectedAnchor: 'humahuaca' },
+      { address: 'B° Parque Industrial', expectedAnchor: 'parque industrial' },
+      { address: 'Uruguay 350', expectedAnchor: 'uruguay' },
+      { address: 'Vélez Sársfield 200', expectedAnchor: 'velez sarsfield' }
+    ];
+
+    for (const { address, expectedAnchor } of testCases) {
+      const coords = resolveOrderCoordinates({
+        ...baseOrder,
+        address
+      });
+
+      const anchor = BOLIVAR_ANCHORS[expectedAnchor]!;
+      // Must be close to the specific anchor (within door offset range)
+      expect(Math.abs(coords[0] - anchor[0])).toBeLessThan(0.005);
+      expect(Math.abs(coords[1] - anchor[1])).toBeLessThan(0.005);
+
+      // Must NOT be identical to or near BOLIVAR_CENTER fallback
+      const distToCenter = calculateDistanceKm(coords, BOLIVAR_CENTER);
+      expect(distToCenter).toBeGreaterThan(0.3);
+    }
   });
 });
 

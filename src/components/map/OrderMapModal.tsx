@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, ArrowLeft, MapPin, Navigation, Volume2, Store, Clock, Route, ChevronDown, ExternalLink } from 'lucide-react';
+import { X, ArrowLeft, MapPin, Navigation, Volume2, Store, Clock, Route, ChevronDown, ExternalLink, Loader2 } from 'lucide-react';
 import L from 'leaflet';
 import type { Order } from '../../types';
 import { formatCurrency } from '../../utils/formatting';
 import { openNavigation } from '../../utils/navigation';
-import { speakOrder } from '../../utils/speech';
+import { speakOrder, isSpeechMuted, cancelSpeech } from '../../utils/speech';
 import { resolveOrderCoordinates, calculateDistanceKm, estimateMotoEtaMinutes } from '../../utils/geocoding';
+import { fetchOsrmRoute } from '../../utils/routing';
 import { useGeolocation, BOLIVAR_CENTER } from '../../hooks/useGeolocation';
 import { useAuth } from '../../context/AuthContext';
 import { Badge } from '../common/Badge';
@@ -30,8 +31,14 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
   const { location: cadeteLocation } = useGeolocation();
 
   const [showNavMenu, setShowNavMenu] = useState<boolean>(false);
+  const [distanceKm, setDistanceKm] = useState<number>(0);
+  const [etaMinutes, setEtaMinutes] = useState<number>(0);
+  const [isLoadingRoute, setIsLoadingRoute] = useState<boolean>(false);
+
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const polylineRef = useRef<L.Polyline | null>(null);
+  const hasSpokenRef = useRef<string | null>(null);
 
   const { handleProgrammaticClose } = useModalBackHandler({
     isOpen,
@@ -39,18 +46,64 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
     modalId: 'order-map'
   });
 
-  // Initialize and update Leaflet route map
+  // Sync initial Haversine distance and ETA metrics immediately on open
+  useEffect(() => {
+    if (!isOpen || !order) {
+      setDistanceKm(0);
+      setEtaMinutes(0);
+      setIsLoadingRoute(false);
+      return;
+    }
+
+    const destCoords = resolveOrderCoordinates(order);
+    const originCoords: [number, number] = cadeteLocation
+      ? [cadeteLocation.lat, cadeteLocation.lng]
+      : BOLIVAR_CENTER;
+    const initialDistanceKm = calculateDistanceKm(originCoords, destCoords);
+    const initialEtaMinutes = estimateMotoEtaMinutes(initialDistanceKm);
+    setDistanceKm(initialDistanceKm);
+    setEtaMinutes(initialEtaMinutes);
+  }, [isOpen, order?.id, cadeteLocation?.lat, cadeteLocation?.lng]);
+
+  // R3: Auto speech readout (< 300ms, deduplicated by order.id)
+  useEffect(() => {
+    if (!isOpen || !order) {
+      hasSpokenRef.current = null;
+      cancelSpeech();
+      return;
+    }
+
+    if (hasSpokenRef.current !== order.id) {
+      hasSpokenRef.current = order.id;
+      const speechTimer = setTimeout(() => {
+        if (!isSpeechMuted()) {
+          cancelSpeech();
+          speakOrder(order);
+        }
+      }, 150);
+
+      return () => {
+        clearTimeout(speechTimer);
+      };
+    }
+  }, [isOpen, order?.id]);
+
+  // Initialize and update Leaflet route map with OSRM street routing
   useEffect(() => {
     if (!isOpen || !order || !mapContainerRef.current) return;
 
+    let isMounted = true;
+    const abortController = new AbortController();
+
     // Small delay to allow the modal sheet DOM animation to settle
     const timer = setTimeout(() => {
-      if (!mapContainerRef.current) return;
+      if (!mapContainerRef.current || !isMounted) return;
 
       // Dispose existing map if container already initialized
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
+        polylineRef.current = null;
       }
 
       const destCoords = resolveOrderCoordinates(order);
@@ -76,13 +129,15 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
           icon: createOrderDestinationIcon(order.amount, order.paymentMethod, true)
         }).addTo(map);
 
-        // Dashed emerald route polyline
-        L.polyline([originCoords, destCoords], {
+        // Initial render: straight dashed emerald route polyline with zero delay
+        const straightPolyline = L.polyline([originCoords, destCoords], {
           color: '#10b981',
           weight: 4,
           dashArray: '6, 8',
           opacity: 0.9
         }).addTo(map);
+
+        polylineRef.current = straightPolyline;
 
         // Fit map bounds to show both points with comfortable padding
         const bounds = L.latLngBounds([originCoords, destCoords]);
@@ -92,28 +147,61 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
 
         // Ensure canvas tiles fill container cleanly
         map.invalidateSize();
+
+        // Concurrently fetch real street driving route from OSRM
+        setIsLoadingRoute(true);
+        fetchOsrmRoute(originCoords, destCoords, { signal: abortController.signal })
+          .then((result) => {
+            if (!isMounted || !mapInstanceRef.current) return;
+            setIsLoadingRoute(false);
+
+            if (!result.isFallback && result.coordinates.length >= 2) {
+              // Remove initial straight polyline
+              if (polylineRef.current) {
+                map.removeLayer(polylineRef.current);
+                polylineRef.current = null;
+              }
+
+              // Add solid street polyline
+              const streetPolyline = L.polyline(result.coordinates, {
+                color: '#10b981',
+                weight: 4,
+                opacity: 0.9
+              }).addTo(map);
+
+              polylineRef.current = streetPolyline;
+
+              // Refit bounds for the actual street path
+              map.fitBounds(streetPolyline.getBounds(), { padding: [40, 40], maxZoom: 16 });
+
+              // Update distance and ETA metrics to match OSRM street route
+              setDistanceKm(result.distanceKm);
+              setEtaMinutes(result.durationMinutes);
+            }
+          })
+          .catch(() => {
+            if (isMounted) {
+              setIsLoadingRoute(false);
+            }
+          });
       } catch {
         // Fallback gracefully if canvas context fails
       }
     }, 150);
 
     return () => {
+      isMounted = false;
+      abortController.abort();
       clearTimeout(timer);
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
+        polylineRef.current = null;
       }
     };
-  }, [isOpen, order, cadeteLocation]);
+  }, [isOpen, order?.id, cadeteLocation?.lat, cadeteLocation?.lng]);
 
   if (!isOpen || !order) return null;
-
-  const destCoords = resolveOrderCoordinates(order);
-  const originCoords: [number, number] = cadeteLocation
-    ? [cadeteLocation.lat, cadeteLocation.lng]
-    : BOLIVAR_CENTER;
-  const distanceKm = calculateDistanceKm(originCoords, destCoords);
-  const etaMinutes = estimateMotoEtaMinutes(distanceKm);
 
   const handleExternalNav = (provider: 'google' | 'waze') => {
     if (!order.address) return;
@@ -123,6 +211,9 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
 
   const handleSpeak = () => {
     try {
+      if (!isSpeechMuted()) {
+        cancelSpeech();
+      }
       speakOrder(order);
     } catch {
       // Safe fallback
@@ -209,6 +300,12 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
               <Clock className="w-3.5 h-3.5 text-zinc-400" />
               <span>~{etaMinutes} min en moto</span>
             </div>
+            {isLoadingRoute && (
+              <div className="flex items-center gap-1 text-emerald-400/90 font-medium animate-pulse ml-1">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <span className="text-[11px] hidden xs:inline">Trazando calles...</span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5">

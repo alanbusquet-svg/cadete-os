@@ -8,6 +8,7 @@ export interface LatLng {
 
 // Known points of interest & street anchors in San Carlos de Bolívar
 export const BOLIVAR_ANCHORS: Record<string, [number, number]> = {
+  // Existing anchors
   'san martin': [-36.2307, -61.1130],
   'brown': [-36.2285, -61.1115],
   'cancio': [-36.2215, -61.1025],
@@ -29,7 +30,90 @@ export const BOLIVAR_ANCHORS: Record<string, [number, number]> = {
   'parque las acollaradas': [-36.2420, -61.1250],
   'acollaradas': [-36.2420, -61.1250],
   'terminal': [-36.2260, -61.1190],
-  'hospital': [-36.2350, -61.1180]
+  'hospital': [-36.2350, -61.1180],
+
+  // Expanded Bolívar streets & landmarks (R2)
+  'colon': [-36.2355, -61.1120],
+  'necochea': [-36.2240, -61.1180],
+  'independencia': [-36.2265, -61.1135],
+  'dorrego': [-36.2350, -61.1210],
+  'ameghino': [-36.2270, -61.1100],
+  'quintana': [-36.2370, -61.1190],
+  'perito moreno': [-36.2365, -61.1125],
+  'moreno': [-36.2365, -61.1125],
+  'carlos pellegrini': [-36.2310, -61.1070],
+  'pellegrini': [-36.2310, -61.1070],
+  'laprida': [-36.2290, -61.1170],
+  'espana': [-36.2260, -61.1140],
+  'italia': [-36.2250, -61.1130],
+  'francia': [-36.2240, -61.1120],
+  'pringles': [-36.2315, -61.1145],
+  '25 de mayo': [-36.2245, -61.1185],
+  'de mayo': [-36.2245, -61.1185],
+  '9 de julio': [-36.2260, -61.1090],
+  'de julio': [-36.2260, -61.1090],
+  '12 de octubre': [-36.2305, -61.1110],
+  'de octubre': [-36.2305, -61.1110],
+  'alberdi': [-36.2295, -61.1120],
+  'avellaneda': [-36.2335, -61.1105],
+  'chacabuco': [-36.2345, -61.1115],
+  'constitucion': [-36.2255, -61.1165],
+  'echeverria': [-36.2360, -61.1175],
+  'falucho': [-36.2340, -61.1200],
+  'garay': [-36.2270, -61.1180],
+  'humahuaca': [-36.2390, -61.1080],
+  'bernardo de irigoyen': [-36.2355, -61.1220],
+  'irigoyen': [-36.2355, -61.1220],
+  'juncal': [-36.2280, -61.1190],
+  'nestor kirchner': [-36.2210, -61.1150],
+  'kirchner': [-36.2210, -61.1150],
+  'lima': [-36.2380, -61.1140],
+  'melo': [-36.2375, -61.1150],
+  'nacion': [-36.2235, -61.1140],
+  'obispo serafini': [-36.2325, -61.1175],
+  'obispo': [-36.2325, -61.1175],
+  'pastor torres': [-36.2300, -61.1195],
+  'pastor': [-36.2300, -61.1195],
+  'quito': [-36.2395, -61.1130],
+  'reconquista': [-36.2330, -61.1090],
+  'salta': [-36.2260, -61.1110],
+  'tucuman': [-36.2270, -61.1090],
+  'uruguay': [-36.2400, -61.1160],
+  'velez sarsfield': [-36.2280, -61.1165],
+  'velez': [-36.2280, -61.1165],
+  'washington': [-36.2385, -61.1165],
+  'hipolito yrigoyen': [-36.2335, -61.1180],
+  'yrigoyen': [-36.2335, -61.1180],
+  'parque industrial': [-36.2120, -61.1340],
+  'industrial': [-36.2120, -61.1340],
+  'villa del parque': [-36.2360, -61.1270],
+  'villa parque': [-36.2360, -61.1270],
+  'la loma': [-36.2440, -61.1180],
+  'loma': [-36.2440, -61.1180],
+  'saavedra': [-36.2290, -61.1160],
+  'las heras': [-36.2315, -61.1155],
+  'mariano unzue': [-36.2360, -61.1070],
+  'unzue': [-36.2360, -61.1070],
+  'centenario': [-36.2220, -61.1210],
+  'edison': [-36.2250, -61.1185],
+  'santos plaza': [-36.2355, -61.1130],
+  'almafuerte': [-36.2270, -61.1080],
+  'borges': [-36.2340, -61.1090],
+  'rebucion': [-36.2330, -61.1080],
+  'larrea': [-36.2300, -61.1090],
+  'saenz pena': [-36.2310, -61.1060],
+  'pedro vignau': [-36.2250, -61.1070],
+  'vignau': [-36.2250, -61.1070],
+  'venezuela': [-36.2230, -61.1160],
+  'palavecino': [-36.2350, -61.1080],
+  'leiria': [-36.2360, -61.1090],
+  'fabres garcia': [-36.2230, -61.1190],
+  'quirno costa': [-36.2245, -61.1175],
+  'suipacha': [-36.2265, -61.1095],
+  'ocampo': [-36.2370, -61.1100],
+  'casariego': [-36.2380, -61.1110],
+  'melitona': [-36.2365, -61.1135],
+  'pompeya': [-36.2400, -61.1100]
 };
 
 /**
@@ -89,8 +173,8 @@ export function resolveOrderCoordinates(order: Order): [number, number] {
   for (const [key, coords] of Object.entries(BOLIVAR_ANCHORS)) {
     if (normalized.includes(key) || (normalized.length >= 3 && key.includes(normalized))) {
       // Extrae altura numérica de la calle para interpolar posición
-      const matchNumber = rawAddress.match(/\b\d{1,4}\b/);
-      const doorNumber = matchNumber ? parseInt(matchNumber[0], 10) : 100;
+      const numbers = rawAddress.match(/\b\d{1,4}\b/g);
+      const doorNumber = numbers ? parseInt(numbers[numbers.length - 1]!, 10) : 100;
       // Cada 100 números avanza ~0.0002 grados (~20-25 metros)
       const offset = ((doorNumber % 1000) / 1000) * 0.003;
       return [coords[0] - offset, coords[1] - offset];

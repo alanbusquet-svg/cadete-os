@@ -149,3 +149,95 @@ describe('Geolocation & Map Component Architecture Integrity', () => {
     expect(sidebarNavContent).toContain("label: 'Mapa en Vivo'");
   });
 });
+
+describe('R1, R3, R4, R5-UI In-App Map & Voice Navigation Verification', () => {
+  it('verifies R1: OrderCard "Cómo ir" button triggers in-app modal without external navigation', () => {
+    const orderCardContent = readFileSync(
+      resolve(__dirname, '../src/components/orders/OrderCard.tsx'),
+      'utf-8'
+    );
+
+    // Primary action is "Cómo ir" with >= 52px touch target
+    expect(orderCardContent).toContain('flex-1 min-h-[52px]');
+    expect(orderCardContent).toContain('Cómo ir');
+    expect(orderCardContent).toContain('Ver en Mapa');
+
+    // Calls handleOpenMap which delegates to onViewOnMap
+    expect(orderCardContent).toContain('handleOpenMap');
+    expect(orderCardContent).toContain('onViewOnMap');
+
+    // Crucial R1 constraint: NO external navigation to openNavigation from OrderCard
+    expect(orderCardContent).not.toContain('openNavigation(');
+    expect(orderCardContent).not.toContain("handleNavigate('google')");
+    expect(orderCardContent).not.toContain("handleNavigate('waze')");
+
+    // Hidden when address is missing
+    expect(orderCardContent).toContain('{hasAddress && (');
+  });
+
+  it('verifies R4: OrderCard includes dedicated >= 44px speech button next to amount', () => {
+    const orderCardContent = readFileSync(
+      resolve(__dirname, '../src/components/orders/OrderCard.tsx'),
+      'utf-8'
+    );
+
+    // Touch target >= 44px
+    expect(orderCardContent).toContain('w-11 h-11 min-w-[44px] min-h-[44px]');
+    expect(orderCardContent).toContain('handleSpeakOrder');
+
+    // Mute synchronization
+    expect(orderCardContent).toContain('cadete_os_speech_muted_changed');
+    expect(orderCardContent).toContain('storage');
+
+    // Visual indicators for mute / unmute
+    expect(orderCardContent).toContain('VolumeX');
+    expect(orderCardContent).toContain('Volume2');
+
+    // Audio invocation
+    expect(orderCardContent).toContain('speakOrder(order)');
+  });
+
+  it('verifies R3: OrderMapModal auto-speaks order readout within 150ms and prevents duplicates', () => {
+    const modalContent = readFileSync(
+      resolve(__dirname, '../src/components/map/OrderMapModal.tsx'),
+      'utf-8'
+    );
+
+    // Auto speech within 150ms (< 300ms)
+    expect(modalContent).toContain('150');
+    expect(modalContent).toContain('hasSpokenRef');
+    expect(modalContent).toContain('isSpeechMuted()');
+    expect(modalContent).toContain('cancelSpeech()');
+    expect(modalContent).toContain('speakOrder(order)');
+
+    // Manual speech repeat button in header
+    expect(modalContent).toContain('handleSpeak');
+    expect(modalContent).toContain('Volume2');
+  });
+
+  it('verifies R5-UI: OrderMapModal integrates OSRM street route with straight-line fallback and loading indicator', () => {
+    const modalContent = readFileSync(
+      resolve(__dirname, '../src/components/map/OrderMapModal.tsx'),
+      'utf-8'
+    );
+
+    // Imports OSRM routing helper
+    expect(modalContent).toContain("import { fetchOsrmRoute } from '../../utils/routing'");
+
+    // State for dynamic routing & loading indicator
+    expect(modalContent).toContain('isLoadingRoute');
+    expect(modalContent).toContain('Trazando calles...');
+    expect(modalContent).toContain('Loader2');
+
+    // Initial straight polyline
+    expect(modalContent).toContain('L.polyline');
+    expect(modalContent).toContain("color: '#10b981'");
+    expect(modalContent).toContain("dashArray: '6, 8'");
+
+    // Dynamic polyline swap
+    expect(modalContent).toContain('map.removeLayer(polylineRef.current)');
+    expect(modalContent).toContain('map.fitBounds');
+    expect(modalContent).toContain('setDistanceKm(result.distanceKm)');
+    expect(modalContent).toContain('setEtaMinutes(result.durationMinutes)');
+  });
+});

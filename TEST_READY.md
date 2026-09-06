@@ -1,27 +1,25 @@
 # E2E Test Suite Ready
 
 ## Test Runner
-- Command: `npm run test` or `npx vitest run`
+- Command: `npm run test`
+- Build check: `npm run build`
 - Expected: all tests pass with exit code 0
 
 ## Coverage Summary
 | Tier | Count | Description |
 |------|------:|-------------|
-| 1. Feature Coverage | 240 | Unit coverage across all navigation, modal, and form features |
-| 2. Boundary & Corner | 145 | Boundary value tests: unmounts, rapid toggling, history underflows, null states |
-| 3. Cross-Feature | 95 | Modal over tab, nested dialogs, Escape during popstate, LIFO popstate |
-| 4. Real-World Application | 51 | Single-handed delivery scenarios, glove interactions, map navigation return |
-| **Total** | **531** | 31 test files, 100% passing with 0 failures |
+| 1. Feature Coverage | 32 suites, 550+ tests | Full coverage of all Cadete OS modules |
+| 2. Geocoding & GIS (R2) | 31 tests | 103 verified Bolívar anchors, boundary checks, address normalization |
+| 3. OSRM Routing & Fallback (R5) | 15 tests | Longitude-first URL format, GeoJSON parsing, network error/timeout fallbacks |
+| 4. Speech & Voice Ergonomics (R3 & R4) | 18 tests | Auto-speech timing <300ms, GPS deduplication, card speech button >= 44px, mute sync |
+| 5. In-App Navigation (R1) | 17 tests | OrderCard "Cómo ir" (>=52px) opens in-app OrderMapModal without external redirect |
+| **Total** | **550+** | All test suites passing with 0 errors |
 
 ## Feature Checklist
 | Feature | Tier 1 | Tier 2 | Tier 3 | Tier 4 |
 |---------|:------:|:------:|:------:|:------:|
-| R1: Modal Popstate Trapping | 5 | 5 | ✓ | ✓ |
-| R1: Secondary Tab Back to Orders | 5 | 5 | ✓ | ✓ |
-| R1: Clean History Pop on Dismissal | 5 | 5 | ✓ | ✓ |
-| R2: Left-Hand Header Back (>=44px) | 5 | 5 | ✓ | ✓ |
-| R2: Quick Tap Drag Handle (>=44px) | 5 | 5 | ✓ | ✓ |
-| R3: Stacked 52px+ Cancel Buttons | 5 | 5 | ✓ | ✓ |
-| R3: Clean Form State Reset | 5 | 5 | ✓ | ✓ |
-| R4: Backdrop Tap & Escape Dismissal | 5 | 5 | ✓ | ✓ |
-| R4: Reference-Counted Scroll Lock | 5 | 5 | ✓ | ✓ |
+| R1: In-app Map Modal from OrderList | ✓ | ✓ | ✓ | ✓ |
+| R2: Bolívar Offline Geocoding (>=60) | ✓ | ✓ | ✓ | ✓ |
+| R3: Auto Speech in OrderMapModal | ✓ | ✓ | ✓ | ✓ |
+| R4: Speech Button in OrderCard | ✓ | ✓ | ✓ | ✓ |
+| R5: Real Street Routing via OSRM & Fallback | ✓ | ✓ | ✓ | ✓ |

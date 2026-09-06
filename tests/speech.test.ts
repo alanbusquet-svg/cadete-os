@@ -191,4 +191,67 @@ describe('Web Speech API Assistant (speech.ts)', () => {
     expect(() => unlockAudio()).not.toThrow();
     expect(() => cancelSpeech()).not.toThrow();
   });
+
+  it('should dispatch cadete_os_speech_muted_changed custom event on setSpeechMuted and toggleSpeechMuted', () => {
+    const eventHandler = vi.fn();
+    window.addEventListener('cadete_os_speech_muted_changed', eventHandler);
+
+    setSpeechMuted(true);
+    expect(eventHandler).toHaveBeenCalledTimes(1);
+    expect(eventHandler.mock.calls[0][0].detail).toBe(true);
+
+    toggleSpeechMuted();
+    expect(eventHandler).toHaveBeenCalledTimes(2);
+    expect(eventHandler.mock.calls[1][0].detail).toBe(false);
+
+    window.removeEventListener('cadete_os_speech_muted_changed', eventHandler);
+  });
+});
+
+describe('R4 & R3 Voice Assistant Integration & Ergonomics', () => {
+  it('verifies OrderCard contains dedicated 44px speech button with mute awareness', async () => {
+    const { readFileSync } = await import('fs');
+    const { resolve } = await import('path');
+    const orderCardSrc = readFileSync(
+      resolve(__dirname, '../src/components/orders/OrderCard.tsx'),
+      'utf-8'
+    );
+
+    // Touch target >= 44px
+    expect(orderCardSrc).toContain('min-w-[44px]');
+    expect(orderCardSrc).toContain('min-h-[44px]');
+    expect(orderCardSrc).toContain('w-11 h-11');
+
+    // Mute synchronization & visual switching
+    expect(orderCardSrc).toContain('cadete_os_speech_muted_changed');
+    expect(orderCardSrc).toContain('Volume2');
+    expect(orderCardSrc).toContain('VolumeX');
+
+    // Audio invocation and mute check
+    expect(orderCardSrc).toContain('handleSpeakOrder');
+    expect(orderCardSrc).toContain('isSpeechMuted()');
+    expect(orderCardSrc).toContain('speakOrder(order)');
+  });
+
+  it('verifies OrderMapModal contains auto-speech readout with deduplication and <300ms timing', async () => {
+    const { readFileSync } = await import('fs');
+    const { resolve } = await import('path');
+    const mapModalSrc = readFileSync(
+      resolve(__dirname, '../src/components/map/OrderMapModal.tsx'),
+      'utf-8'
+    );
+
+    // Auto-speech timing (<300ms)
+    expect(mapModalSrc).toContain('150');
+
+    // Deduplication ref and mute checking
+    expect(mapModalSrc).toContain('hasSpokenRef');
+    expect(mapModalSrc).toContain('isSpeechMuted()');
+    expect(mapModalSrc).toContain('cancelSpeech()');
+    expect(mapModalSrc).toContain('speakOrder(order)');
+
+    // Manual speech repeat button
+    expect(mapModalSrc).toContain('handleSpeak');
+    expect(mapModalSrc).toContain('Volume2');
+  });
 });

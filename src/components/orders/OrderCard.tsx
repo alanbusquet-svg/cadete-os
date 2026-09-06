@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Navigation,
   MapPin,
@@ -7,14 +7,15 @@ import {
   Clock,
   Trash2,
   ChevronDown,
-  ExternalLink,
-  MessageSquare
+  MessageSquare,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import type { Order } from '../../types';
 import { formatCurrency, formatTime, getZoneLabel } from '../../utils/formatting';
-import { openNavigation, isValidAddress } from '../../utils/navigation';
+import { isValidAddress } from '../../utils/navigation';
 import { buildCustomerWhatsAppUrl } from '../../utils/whatsapp';
-import { speakOrder } from '../../utils/speech';
+import { speakOrder, isSpeechMuted } from '../../utils/speech';
 import { useAuth } from '../../context/AuthContext';
 import { Badge } from '../common/Badge';
 import { OrderMapModal } from '../map/OrderMapModal';
@@ -35,26 +36,35 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 }) => {
   const { user } = useAuth();
   const city = user?.settings?.cityDefault || 'San Carlos de Bolívar';
-  const country = user?.settings?.countryDefault || 'Argentina';
-  const [showNavMenu, setShowNavMenu] = useState<boolean>(false);
   const [isInternalMapOpen, setIsInternalMapOpen] = useState<boolean>(false);
+  const [speechMuted, setSpeechMuted] = useState<boolean>(() => isSpeechMuted());
+
+  useEffect(() => {
+    const syncMute = () => {
+      setSpeechMuted(isSpeechMuted());
+    };
+    window.addEventListener('cadete_os_speech_muted_changed', syncMute);
+    window.addEventListener('storage', syncMute);
+    return () => {
+      window.removeEventListener('cadete_os_speech_muted_changed', syncMute);
+      window.removeEventListener('storage', syncMute);
+    };
+  }, []);
 
   const hasAddress = isValidAddress(order.address);
   const hasCustomerPhone = Boolean(order.customerPhone && order.customerPhone.trim());
 
-  const handleNavigate = (provider: 'google' | 'waze') => {
-    if (!order.address) return;
-    openNavigation(order.address, provider, city, country);
-    setShowNavMenu(false);
-  };
-
-  const handleOpenMap = () => {
+  const handleSpeakOrder = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isSpeechMuted()) return;
     try {
       speakOrder(order);
     } catch {
       // Safe fallback
     }
+  };
 
+  const handleOpenMap = () => {
     if (onViewOnMap) {
       onViewOnMap(order);
     } else {
@@ -93,14 +103,31 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           )}
         </div>
 
-        {/* Amount */}
-        <div className="flex flex-col items-end flex-shrink-0">
-          <span className="text-xl font-black text-emerald-400 tracking-tight">
-            {formatCurrency(order.amount)}
-          </span>
-          <span className="text-[11px] font-semibold text-zinc-400 uppercase">
-            {order.paymentMethod === 'cash' ? 'Efectivo' : 'Transferencia'}
-          </span>
+        {/* Voice button + Amount */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={handleSpeakOrder}
+            className={cn(
+              'w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl flex items-center justify-center transition-colors active:scale-95',
+              speechMuted
+                ? 'bg-zinc-800/60 border border-zinc-800 text-zinc-500 opacity-60'
+                : 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25'
+            )}
+            title={speechMuted ? 'Asistente de voz silenciado' : 'Escuchar pedido'}
+            aria-label={speechMuted ? 'Asistente de voz silenciado' : `Escuchar pedido de ${order.businessName}`}
+          >
+            {speechMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+          </button>
+
+          <div className="flex flex-col items-end flex-shrink-0">
+            <span className="text-xl font-black text-emerald-400 tracking-tight">
+              {formatCurrency(order.amount)}
+            </span>
+            <span className="text-[11px] font-semibold text-zinc-400 uppercase">
+              {order.paymentMethod === 'cash' ? 'Efectivo' : 'Transferencia'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -158,61 +185,43 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       {/* Row 1: Map Navigation Row (when hasAddress) */}
       {hasAddress && (
         <div className="flex items-center gap-2 pt-2 border-t border-zinc-800/60">
-          {/* Primary Action: Ver en Mapa (Left-Thumb Ergonomic, >=52px touch target) */}
+          {/* Primary Action: Cómo ir / Ver en Mapa (Left-Thumb Ergonomic, >=52px touch target) */}
           <button
             type="button"
             onClick={handleOpenMap}
             className="flex-1 min-h-[52px] px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black text-sm flex items-center justify-center gap-2 shadow-sm shadow-emerald-950/20 active:scale-[0.98] transition-all"
-            aria-label={`Ver en mapa viaje a ${order.address}`}
+            aria-label={`Cómo ir - Ver en mapa viaje a ${order.address}`}
+            title="Cómo ir (Ver en Mapa)"
           >
-            <Map className="w-4 h-4 stroke-[2.5]" />
-            <span>Ver en Mapa</span>
+            <Navigation className="w-4 h-4 stroke-[2.5]" />
+            <span>Cómo ir</span>
+            <span className="text-xs font-semibold opacity-75 hidden sm:inline">Ver en Mapa</span>
           </button>
 
-          {/* Secondary Action: External Navigation (Google Maps / Waze) */}
+          {/* Secondary Action: In-app map navigation (also calls handleOpenMap) */}
           <div className="relative shrink-0">
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                onClick={() => handleNavigate('google')}
+                onClick={handleOpenMap}
                 className="min-h-[52px] px-3.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/80 font-semibold text-xs flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all"
-                title="Abrir en Google Maps"
+                title="Ver en Mapa"
+                aria-label="Ver en Mapa"
               >
-                <Navigation className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Cómo ir</span>
+                <Map className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Ver en Mapa</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setShowNavMenu(!showNavMenu)}
+                onClick={handleOpenMap}
                 className="min-h-[52px] w-10 rounded-2xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 flex items-center justify-center border border-zinc-700/80 transition-colors"
-                title="Elegir aplicación de mapas"
+                title="Ver en Mapa"
+                aria-label="Abrir mapa de ruta"
               >
                 <ChevronDown className="w-3.5 h-3.5" />
               </button>
             </div>
-
-            {/* Dropdown for external maps */}
-            {showNavMenu && (
-              <div className="absolute right-0 bottom-full mb-2 w-48 bg-zinc-900 border border-zinc-700 rounded-2xl p-1.5 shadow-xl z-20 space-y-1">
-                <button
-                  type="button"
-                  onClick={() => handleNavigate('google')}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-zinc-200 hover:bg-zinc-800 flex items-center justify-between"
-                >
-                  <span>Google Maps</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleNavigate('waze')}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-zinc-200 hover:bg-zinc-800 flex items-center justify-between"
-                >
-                  <span>Waze</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}

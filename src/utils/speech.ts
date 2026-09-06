@@ -101,6 +101,7 @@ export function setSpeechMuted(muted: boolean): void {
     if (muted && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
+    window.dispatchEvent(new CustomEvent('cadete_os_speech_muted_changed', { detail: muted }));
   } catch {
     // Ignorar error al escribir en storage
   }
