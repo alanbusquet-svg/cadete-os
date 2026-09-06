@@ -94,6 +94,26 @@ export const BusinessFormModal: React.FC<BusinessFormModalProps> = ({
     onClose();
   };
 
+  const handleCancel = () => {
+    if (businessToEdit) {
+      setName(businessToEdit.name);
+      setPhone(businessToEdit.phone || '');
+      setPlantaUrbana(String(businessToEdit.defaultPrices.plantaUrbana || ''));
+      setBarrioCerca(String(businessToEdit.defaultPrices.barrioCerca || ''));
+      setBarrioLejos(String(businessToEdit.defaultPrices.barrioLejos || ''));
+      setPaymentCycle(businessToEdit.paymentCycle);
+    } else {
+      setName('');
+      setPhone('');
+      setPlantaUrbana('1500');
+      setBarrioCerca('2200');
+      setBarrioLejos('3000');
+      setPaymentCycle('weekly');
+    }
+    setError('');
+    onClose();
+  };
+
   const cycleOptions = [
     { value: 'daily', label: 'Diario (Fin de turno)' },
     { value: 'weekly', label: 'Semanal (ej: Domingos)' },
@@ -182,8 +202,8 @@ export const BusinessFormModal: React.FC<BusinessFormModalProps> = ({
           onChange={(e) => setPaymentCycle(e.target.value as PaymentCycle)}
         />
 
-        {/* Botón Guardar */}
-        <div className="pt-2">
+        {/* Botones de Acción */}
+        <div className="pt-2 flex flex-col gap-2">
           <Button
             type="submit"
             variant="primary"
@@ -192,6 +212,15 @@ export const BusinessFormModal: React.FC<BusinessFormModalProps> = ({
             leftIcon={businessToEdit ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6 stroke-[3]" />}
           >
             {businessToEdit ? 'Guardar Cambios' : 'Crear Comercio'}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            fullWidth
+            onClick={handleCancel}
+          >
+            Cancelar
           </Button>
         </div>
       </form>

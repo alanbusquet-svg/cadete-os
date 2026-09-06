@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
@@ -19,6 +19,21 @@ export const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({ isOpen, onCl
   const [amount, setAmount] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('cash');
   const [error, setError] = useState<string>('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setError('');
+    }
+  }, [isOpen]);
+
+  const handleCancel = () => {
+    setAmount('');
+    setError('');
+    setCategory('fuel');
+    setDescription('Nafta Súper');
+    setPaymentMethod('cash');
+    onClose();
+  };
 
   const categories = [
     { id: 'fuel' as ExpenseCategory, label: 'Nafta', icon: Fuel, defaultDesc: 'Nafta Súper' },
@@ -158,8 +173,8 @@ export const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({ isOpen, onCl
           </div>
         </div>
 
-        {/* Botón Guardar */}
-        <div className="pt-2">
+        {/* Botones de Acción */}
+        <div className="pt-2 flex flex-col gap-2">
           <Button
             type="submit"
             variant="danger"
@@ -168,6 +183,15 @@ export const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({ isOpen, onCl
             leftIcon={<Plus className="w-6 h-6 stroke-[3]" />}
           >
             Guardar Gasto
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            fullWidth
+            onClick={handleCancel}
+          >
+            Cancelar
           </Button>
         </div>
       </form>

@@ -132,10 +132,20 @@ export const BusinessDebtModal: React.FC<BusinessDebtModalProps> = ({
             >
               Liquidar Deuda en Lote
             </Button>
+
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              fullWidth
+              onClick={onClose}
+            >
+              Volver sin Liquidar
+            </Button>
           </div>
         ) : (
           <div className="pt-2">
-            <Button variant="secondary" size="md" fullWidth onClick={onClose}>
+            <Button variant="secondary" size="lg" fullWidth onClick={onClose}>
               Cerrar
             </Button>
           </div>

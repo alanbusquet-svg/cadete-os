@@ -118,6 +118,15 @@ export const OrderFormModal: React.FC<OrderFormModalProps> = ({ isOpen, onClose 
     onClose();
   };
 
+  const handleCancel = () => {
+    setAddress('');
+    setCustomerPhone('');
+    setNotes('');
+    setShowMoreOptions(false);
+    setError('');
+    onClose();
+  };
+
   const businessOptions = activeBusinesses.map((b) => ({
     value: b.id,
     label: b.name
@@ -390,8 +399,8 @@ export const OrderFormModal: React.FC<OrderFormModalProps> = ({ isOpen, onClose 
           </div>
         )}
 
-        {/* CORE 5: Botón Principal Guardar */}
-        <div className="pt-2">
+        {/* CORE 5: Botones de Acción */}
+        <div className="pt-2 flex flex-col gap-2">
           <Button
             type="submit"
             variant="primary"
@@ -400,6 +409,15 @@ export const OrderFormModal: React.FC<OrderFormModalProps> = ({ isOpen, onClose 
             leftIcon={<Plus className="w-6 h-6" />}
           >
             Guardar Viaje
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            fullWidth
+            onClick={handleCancel}
+          >
+            Cancelar
           </Button>
         </div>
       </form>

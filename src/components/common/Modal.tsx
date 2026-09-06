@@ -1,6 +1,7 @@
-import React, { useEffect, type ReactNode } from 'react';
-import { X } from 'lucide-react';
+import React, { type ReactNode } from 'react';
+import { X, ArrowLeft } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useModalBackHandler } from '../../hooks/useModalBackHandler';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ export interface ModalProps {
   children: ReactNode;
   footer?: ReactNode;
   size?: 'md' | 'lg' | 'full';
+  modalId?: string;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -19,19 +21,14 @@ export const Modal: React.FC<ModalProps> = ({
   subtitle,
   children,
   footer,
-  size = 'md'
+  size = 'md',
+  modalId = 'modal'
 }) => {
-  // Prevent background scrolling when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
+  const { handleProgrammaticClose } = useModalBackHandler({
+    isOpen,
+    onClose,
+    modalId
+  });
 
   if (!isOpen) return null;
 
@@ -44,7 +41,7 @@ export const Modal: React.FC<ModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       {/* Backdrop click */}
-      <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
+      <div className="fixed inset-0 cursor-pointer" onClick={handleProgrammaticClose} aria-hidden="true" />
 
       {/* Modal Container */}
       <div
@@ -53,19 +50,43 @@ export const Modal: React.FC<ModalProps> = ({
           sizeClasses[size]
         )}
       >
-        {/* Mobile Drag Indicator */}
-        <div className="w-12 h-1.5 bg-zinc-700 rounded-full mx-auto mt-3 mb-1 sm:hidden flex-shrink-0" />
+        {/* Mobile Drag Indicator - Interactive touch target */}
+        <button
+          type="button"
+          onClick={handleProgrammaticClose}
+          className="w-full min-h-[44px] flex items-center justify-center py-2 sm:hidden flex-shrink-0 cursor-pointer group focus:outline-none"
+          aria-label="Tocar para cerrar modal"
+          title="Tocar para cerrar"
+        >
+          <div className="w-12 h-1.5 bg-zinc-700 group-hover:bg-zinc-500 rounded-full transition-colors" />
+        </button>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-3 pb-3 border-b border-zinc-800/80 flex-shrink-0">
-          <div className="flex flex-col">
-            <h2 className="text-xl font-bold text-zinc-100">{title}</h2>
-            {subtitle && <p className="text-xs text-zinc-400 mt-0.5">{subtitle}</p>}
-          </div>
+        {/* Header Row: Dual Dismissal + Generous Touch Targets */}
+        <div className="flex items-center justify-between px-4 sm:px-6 pt-1 sm:pt-4 pb-3 border-b border-zinc-800/80 flex-shrink-0 gap-3">
+          {/* Left Back Button (Thumb Reachable) */}
           <button
-            onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
+            type="button"
+            onClick={handleProgrammaticClose}
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-2xl bg-zinc-800/80 text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700 transition-colors shrink-0 active:scale-95"
+            aria-label="Volver"
+            title="Volver"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+
+          {/* Centered / Expanding Title */}
+          <div className="flex flex-col flex-1 min-w-0">
+            <h2 className="text-lg sm:text-xl font-bold text-zinc-100 truncate">{title}</h2>
+            {subtitle && <p className="text-xs text-zinc-400 mt-0.5 truncate">{subtitle}</p>}
+          </div>
+
+          {/* Right Close Button */}
+          <button
+            type="button"
+            onClick={handleProgrammaticClose}
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-2xl bg-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors shrink-0 active:scale-95"
             aria-label="Cerrar modal"
+            title="Cerrar modal"
           >
             <X className="w-5 h-5" />
           </button>
@@ -86,3 +107,4 @@ export const Modal: React.FC<ModalProps> = ({
     </div>
   );
 };
+

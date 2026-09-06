@@ -1,132 +1,130 @@
-# Project: Cadete OS - Integration & Deployment
+# Project: Cadete OS — Mobile Back Navigation & Modal Ergonomics (R1 - R4)
 
 ## Architecture
-Cadete OS is a mobile-first, offline-resilient Progressive Web App (PWA) built with React 18, Vite 5, TypeScript strict mode, and Tailwind CSS. It leverages Firebase Authentication and Cloud Firestore for multi-tenant cloud synchronization while maintaining instantaneous (<16ms) UI feedback via optimistic local state and LocalStorage caching.
+Cadete OS is a high-performance, mobile-first PWA for motorcycle delivery drivers. The architecture coordinates touch interactions, hardware navigation, overlay ergonomics, and state lifecycles.
 
-### Architecture Layers
-1. **Presentation Layer (`src/components/`)**:
-   - `auth/AuthView.tsx`: Dark-mode native auth screen with Google Sign-In, Email/Password, 7-day trial banner, and Demo Mode bypass.
-   - `layout/`: AppShell, Header, SidebarNav, BottomNav with user profile, trial countdown pill, and logout triggers.
-   - `orders/`, `finance/`, `businesses/`, `maintenance/`, `settings/`: Touch-optimized domain screens.
-2. **State & Context Layer (`src/context/`, `src/hooks/`)**:
-   - `AuthContext.tsx`: Firebase Auth state (`onAuthStateChanged`), Google/Email login, 7-day trial calculation, Demo Mode management.
-   - `DataContext.tsx`: Dual-layer state manager (Optimistic React State + LocalStorage immediate offline cache + real-time Firestore `onSnapshot` listeners when authenticated).
-3. **Data & Infrastructure Layer (`src/lib/`, `src/utils/`)**:
-   - `firebase.ts`: Modular Firebase App, Auth, and Firestore initialization with robust environment variable fallbacks.
-   - `firestoreService.ts`: Multi-tenant typed CRUD and atomic batch operations partitioned by `userId`.
-   - `storage.ts`: LocalStorage key-value repository partitioned by `userId`.
-   - `calculations.ts`, `formatting.ts`, `navigation.ts`, `whatsapp.ts`, `trial.ts`: Pure domain logic.
-4. **PWA & Offline Layer**:
-   - `vite-plugin-pwa`: Workbox offline asset caching, auto-updating Service Worker (`sw.js`), Web App Manifest.
-5. **Deployment Layer**:
-   - `vercel.json`: Vercel SPA routing and service worker Cache-Control headers.
-   - `firebase.json` & `firestore.rules`: Firebase Hosting and Firestore security rules isolating collections by `userId`.
-
----
+```
+┌─────────────────────────────────────────────────────────────┐
+│                          App.tsx                            │
+│  - ActiveTab state ('orders' primary, 5 secondary tabs)     │
+│  - Tab History Synchronization (pushState / popstate)       │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+               ┌───────────────┴───────────────┐
+               │                               │
+┌──────────────▼──────────────┐ ┌──────────────▼──────────────┐
+│  src/utils/scrollLock.ts    │ │ src/hooks/useModalBack...ts │
+│  - Reference-counted body   │ │ - history.pushState on open │
+│    scroll locking           │ │ - popstate event listener   │
+│  - Guaranteed reset         │ │ - Escape key listener       │
+│                             │ │ - Clean history pop on exit │
+└──────────────┬──────────────┘ └──────────────┬──────────────┘
+               │                               │
+ ┌─────────────┴───────────────────────────────┴─────────────┐
+ │                      Modal Primitives                     │
+ │  - Modal.tsx (Header Left Back >=44px, Drag Handle tap)   │
+ │  - ConfirmDialog.tsx (Close >=44px, Drag Handle tap)      │
+ │  - OrderMapModal.tsx (Header Left Back >=44px)            │
+ └─────────────────────────────┬─────────────────────────────┘
+                               │
+ ┌─────────────────────────────▼─────────────────────────────┐
+ │                        Form Modals                        │
+ │  - OrderFormModal.tsx (Stacked 52px+ Cancel button)       │
+ │  - ExpenseFormModal.tsx (Stacked 52px+ Cancel button)     │
+ │  - BusinessFormModal.tsx (Stacked 52px+ Cancel button)    │
+ │  - MaintenanceFormModal.tsx (Stacked 52px+ Cancel button) │
+ │  - BusinessDebtModal.tsx (Stacked 52px+ Volver button)    │
+ └───────────────────────────────────────────────────────────┘
+```
 
 ## Feature Inventory
+Every feature from the Survey phase appears here with its assigned milestone:
 | # | Feature | Description | Milestone | Source |
 |---|---------|-------------|-----------|--------|
-| 1 | Firebase App & Auth Init | Modular Firebase SDK init with robust env fallbacks | M1 | ORIGINAL_REQUEST §R1 |
-| 2 | Google Popup Auth | One-tap Google Sign-In via `signInWithPopup` | M1 | ORIGINAL_REQUEST §R1 |
-| 3 | Email & Password Auth | Sign-in and sign-up with password validation & error handling | M1 | ORIGINAL_REQUEST §R1 |
-| 4 | 7-Day Free Trial Logic | Automatic trial calculation, expiration detection, status badges | M1 | ORIGINAL_REQUEST §R1 |
-| 5 | Demo Mode Bypass | Instant trial/offline usage without mandatory registration | M1 | ORIGINAL_REQUEST §R1 |
-| 6 | Auth & Profile UI (AuthView) | Dark mode high-contrast auth screen with >=52px touch targets | M1 | ORIGINAL_REQUEST §R1 |
-| 7 | Header & Sidebar Profile Info | User name, trial countdown badge, demo mode switch, logout button | M1 | ORIGINAL_REQUEST §R1 |
-| 8 | Firestore Data Service | Typed CRUD for users, orders, expenses, businesses, maintenance, shifts | M2 | ORIGINAL_REQUEST §R2 |
-| 9 | Firestore Real-Time Listeners | `onSnapshot` subscriptions sync remote changes to state & LocalStorage | M2 | ORIGINAL_REQUEST §R2 |
-| 10 | Batch Settlement Sync | Atomic `writeBatch` in Firestore for settling multiple business orders | M2 | ORIGINAL_REQUEST §R2 |
-| 11 | Dual-Layer Offline Fallback | Seamless fallback to LocalStorage when offline or in Demo Mode | M2 | ORIGINAL_REQUEST §R2 |
-| 12 | PWA Plugin & Workbox Setup | `vite-plugin-pwa` in `vite.config.ts` with runtime caching | M3 | ORIGINAL_REQUEST §R3 |
-| 13 | Service Worker & Manifest | Auto-update SW, installable manifest, iOS/Android meta tags | M3 | ORIGINAL_REQUEST §R3 |
-| 14 | Strict TypeScript Verification | 0 TS errors under `noUnusedLocals`, `noUncheckedIndexedAccess`, `strict` | M4 | ORIGINAL_REQUEST §R4 |
-| 15 | Vitest Test Suite Expansion | Maintain 100% pass rate across all 162+ existing and new test suites | M4 | ORIGINAL_REQUEST §R4 |
-| 16 | Vercel Deployment & Config | `vercel.json`, team `noxus-stock`, env variables, live URL verification | M5 | ORIGINAL_REQUEST §R5 |
-| 17 | Firebase Hosting Deployment | `firebase.json`, `.firebaserc`, production build deployment | M5 | ORIGINAL_REQUEST §R5 |
-
----
+| 1 | Reference-Counted Scroll Lock | Manage `document.body.style.overflow` with lock count so nested modals never prematurely unlock body scroll | M1 | Survey / R4 |
+| 2 | Reusable Modal Back Hook | `useModalBackHandler` hook encapsulating `pushState`, `popstate`, `Escape`, and `scrollLock` | M1 | Survey / R1, R4 |
+| 3 | Test Environment History Mock | Update `tests/setup.ts` to polyfill `window.history` and `PopStateEvent` for Vitest | M1 | Survey / Test Infra |
+| 4 | Modal Header Left Back Button | Prominent $\ge 44\text{px}$ back button (`ArrowLeft`) in top-left corner of `Modal.tsx` for left thumb reach | M1 | Survey / R2 |
+| 5 | Modal Header Right Close Parity | Maintain $\ge 44\text{px}$ close button (`X`) in top-right corner of `Modal.tsx` | M1 | Survey / R2 |
+| 6 | Modal Drag Handle Tap-to-Dismiss | Wrap drag indicator in clickable touch area calling `onClose()` on tap | M1 | Survey / R2 |
+| 7 | Modal Popstate & Escape Integration | Wire `useModalBackHandler` into `Modal.tsx` for hardware back and Escape key | M1 | Survey / R1, R4 |
+| 8 | ConfirmDialog History & Touch Targets | Wire `useModalBackHandler` and $\ge 44\text{px}$ close target into `ConfirmDialog.tsx` | M1 | Survey / R1, R2, R4 |
+| 9 | OrderMapModal Left Back & Popstate | Wire `useModalBackHandler`, top-left back button, and tap drag handle into `OrderMapModal.tsx` | M1 | Survey / R1, R2, R4 |
+| 10 | OrderFormModal Stacked Cancel Button | Full-width $\ge 52\text{px}$ Cancel button stacked below Guardar Viaje with clean form reset | M2 | Survey / R3 |
+| 11 | ExpenseFormModal Stacked Cancel Button | Full-width $\ge 52\text{px}$ Cancel button stacked below Guardar Gasto with clean form reset | M2 | Survey / R3 |
+| 12 | BusinessFormModal Stacked Cancel Button | Full-width $\ge 52\text{px}$ Cancel button stacked below Guardar Cambios with clean form reset | M2 | Survey / R3 |
+| 13 | MaintenanceFormModal Stacked Cancel Button | Full-width $\ge 52\text{px}$ Cancel button stacked below Guardar en Historial with clean form reset | M2 | Survey / R3 |
+| 14 | BusinessDebtModal Stacked Volver Button | Full-width $\ge 52\text{px}$ Volver button stacked below Liquidar Deuda en Lote | M2 | Survey / R3 |
+| 15 | App Tab History Synchronization | Secondary tab transitions record history; hardware back returns to `'orders'` tab before exiting | M3 | Survey / R1 |
+| 16 | Comprehensive E2E & Unit Test Suite | 100% pass on 446 existing tests + new navigation, popstate, touch target, and form ergonomics tests | M4 | Acceptance Criteria |
+| 17 | Zero-Error Production Build | `npm run build` succeeds with exit code 0 | M4 | Acceptance Criteria |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
-|---|------|-------|-------------|--------|
-| M1 | Firebase Auth & Access Screen | AuthContext, AuthView, Google/Email Auth, 7-Day Trial, Demo Mode, Header Profile | none | DONE |
-| M2 | Firestore Multi-Tenant Cloud Sync | firestoreService.ts, DataContext cloud sync & real-time listeners, LocalStorage fallback | M1 | DONE |
-| M3 | PWA & Service Worker Integration | vite.config.ts (vite-plugin-pwa), manifest, icons, index.html meta tags, vite-env.d.ts | none | DONE |
-| M4 | Quality, TypeScript & Test Hardening | Vitest test suites (275 tests) passing 100%, strict TS compilation (0 errors) | M1, M2, M3 | DONE |
-
----
+|---|------|-------|--------------|--------|
+| 1 | M1: Modal Core Infrastructure, Primitives & Ergonomics | `scrollLock.ts`, `useModalBackHandler.ts`, `tests/setup.ts`, `Modal.tsx`, `ConfirmDialog.tsx`, `OrderMapModal.tsx` | none | DONE |
+| 2 | M2: Form Modals Bottom Cancel Ergonomics | `OrderFormModal.tsx`, `ExpenseFormModal.tsx`, `BusinessFormModal.tsx`, `MaintenanceFormModal.tsx`, `BusinessDebtModal.tsx` | M1 | DONE |
+| 3 | M3: App Tab History Synchronization | `src/App.tsx` | M1 | DONE |
+| 4 | M4: Comprehensive Verification, Adversarial Hardening & Build | Test suites (`tests/modal_navigation.test.ts`, `tests/form_modals_ergonomics.test.ts`, `tests/tab_navigation.test.ts`), full test pass, adversarial audit, `npm run build` code 0 | M1, M2, M3 | DONE |
 
 ## Interface Contracts
 
-### AuthContext ↔ App / UI
+### 1. `src/utils/scrollLock.ts`
 ```typescript
-export interface AuthContextType {
-  user: UserProfile;
-  firebaseUser: User | null;
-  isLoading: boolean;
-  isDemoMode: boolean;
-  trialInfo: TrialInfo;
-  signInWithGoogle: () => Promise<void>;
-  signInWithEmail: (email: string, pass: string) => Promise<void>;
-  signUpWithEmail: (email: string, pass: string, name?: string) => Promise<void>;
-  logout: () => Promise<void>;
-  enterDemoMode: () => void;
-  exitDemoMode: () => void;
-  updateSettings: (settings: Partial<UserProfile['settings']>) => Promise<void>;
-}
+export function lockBodyScroll(): void;
+export function unlockBodyScroll(): void;
+export function forceUnlockBodyScroll(): void;
 ```
+- Maintains internal counter `let lockCount = 0`.
+- When `lockCount === 1`, sets `document.body.style.overflow = 'hidden'`.
+- When `lockCount === 0`, sets `document.body.style.overflow = ''`.
+- `forceUnlockBodyScroll` resets `lockCount = 0` and unlocks overflow (fail-safe).
 
-### Firestore Service (`src/lib/firestoreService.ts`)
+### 2. `src/hooks/useModalBackHandler.ts`
 ```typescript
-export interface FirestoreService {
-  getUserProfile(userId: string): Promise<UserProfile | null>;
-  saveUserProfile(profile: UserProfile): Promise<void>;
-  createInitialUserProfile(firebaseUser: User): Promise<UserProfile>;
-  
-  subscribeCollection<T>(
-    collectionName: string,
-    userId: string,
-    onData: (items: T[]) => void,
-    onError?: (err: Error) => void
-  ): () => void;
-
-  saveDocument<T extends { id: string; userId: string }>(
-    collectionName: string,
-    data: T
-  ): Promise<void>;
-
-  updateDocument<T>(
-    collectionName: string,
-    docId: string,
-    partial: Partial<T>
-  ): Promise<void>;
-
-  deleteDocument(
-    collectionName: string,
-    docId: string
-  ): Promise<void>;
-
-  batchSettleOrders(
-    orderIds: string[],
-    settledAt: string
-  ): Promise<void>;
+export interface UseModalBackHandlerOptions {
+  isOpen: boolean;
+  onClose: () => void;
+  modalId?: string;
+  enableHistory?: boolean;  // default: true
+  enableEscape?: boolean;   // default: true
+  enableScrollLock?: boolean; // default: true
 }
-```
 
----
+export function useModalBackHandler(options: UseModalBackHandlerOptions): {
+  handleProgrammaticClose: () => void;
+};
+```
+- On `isOpen = true`:
+  - Registers entry: `window.history.pushState({ modalId }, '')`.
+  - Increments scroll lock.
+  - Listens to `popstate`: if back event popped the modal entry, invokes `onClose()`.
+  - Listens to `keydown` for `Escape`: invokes `handleProgrammaticClose()`.
+- On `handleProgrammaticClose`:
+  - Pops history: `window.history.back()`.
+  - Invokes `onClose()`.
+  - Flags transition to prevent duplicate `onClose` calls on incoming `popstate`.
+- On unmount:
+  - Cleans up event listeners.
+  - Decrements scroll lock.
+
+### 3. Form Modals Cancel Handlers
+All form modals must implement:
+- `handleCancel: () => void`: Resets local dirty input states, collapses extra options, clears error banners, and invokes `onClose()`.
+- Cancel Button: `type="button"`, `variant="secondary"`, `size="lg"`, `fullWidth` / `w-full`, stacked directly below submit button.
 
 ## Code Layout
-- `src/types/index.ts`: Unified data models and interfaces.
-- `src/lib/firebase.ts`: Firebase App, Auth, Firestore instances.
-- `src/lib/firestoreService.ts`: Firestore cloud database operations.
-- `src/lib/storage.ts`: LocalStorage offline repository.
-- `src/utils/trial.ts`: 7-day trial calculation utilities.
-- `src/context/AuthContext.tsx`: Authentication state provider.
-- `src/context/DataContext.tsx`: Application data & sync provider.
-- `src/components/auth/AuthView.tsx`: Login / Register / Demo mode screen.
-- `src/components/layout/`: AppShell, Header, SidebarNav, BottomNav.
-- `tests/`: Automated Vitest test suites.
-- `vite.config.ts`: Vite + React + PWA plugin configuration.
-- `vercel.json`: Vercel routing and cache headers.
-- `firebase.json` & `.firebaserc`: Firebase Hosting configuration.
+- `src/utils/scrollLock.ts`: New utility for reference-counted scroll locking.
+- `src/hooks/useModalBackHandler.ts`: New React hook for history and escape handling.
+- `src/components/common/Modal.tsx`: Enhanced modal primitive with left back button, drag handle tap, and back hook.
+- `src/components/common/ConfirmDialog.tsx`: Enhanced confirmation dialog with 44px close button and back hook.
+- `src/components/map/OrderMapModal.tsx`: Enhanced map sheet with left back button and back hook.
+- `src/components/orders/OrderFormModal.tsx`: Added stacked Cancel button & clean reset.
+- `src/components/finance/ExpenseFormModal.tsx`: Added stacked Cancel button & clean reset.
+- `src/components/businesses/BusinessFormModal.tsx`: Added stacked Cancel button & clean reset.
+- `src/components/maintenance/MaintenanceFormModal.tsx`: Added stacked Cancel button & clean reset.
+- `src/components/businesses/BusinessDebtModal.tsx`: Added stacked Volver button.
+- `src/App.tsx`: Tab navigation history sync (`orders` $\leftrightarrow$ secondary tabs).
+- `tests/setup.ts`: Polyfill for `window.history` and `PopStateEvent`.
+- `tests/modal_navigation.test.ts`: Test suite for M1, M2, M4.
+- `tests/form_modals_ergonomics.test.ts`: Test suite for M3.

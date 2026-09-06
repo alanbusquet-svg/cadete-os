@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
 import { AppShell } from './components/layout/AppShell';
@@ -12,9 +12,126 @@ import { AuthView } from './components/auth/AuthView';
 import type { ActiveTab } from './types';
 import { Bike, Loader2 } from 'lucide-react';
 
+export interface UseTabNavigationReturn {
+  activeTab: ActiveTab;
+  setActiveTab: React.Dispatch<React.SetStateAction<ActiveTab>>;
+  handleSelectTab: (tab: ActiveTab) => void;
+}
+
+/**
+ * Reusable tab navigation hook synchronizing active tab with browser history.
+ * - Orders -> secondary tab: pushState
+ * - Secondary tab -> secondary tab: replaceState
+ * - Secondary tab -> orders: pushState
+ * - Hardware / browser back (popstate): restores previous tab or returns to 'orders'
+ */
+export function useTabNavigation(defaultTab: ActiveTab = 'orders'): UseTabNavigationReturn {
+  // Read history.state.tab synchronously as lazy initializer so initial mount
+  // (and renderHook in tests) already has the correct tab from the very first render.
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
+    if (typeof window !== 'undefined' && window.history?.state?.tab) {
+      return window.history.state.tab as ActiveTab;
+    }
+    return defaultTab;
+  });
+  const activeTabRef = useRef<ActiveTab>(activeTab);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state?.tab) {
+        const nextTab = e.state.tab as ActiveTab;
+        activeTabRef.current = nextTab;
+        setActiveTab(nextTab);
+      } else if (activeTabRef.current !== 'orders') {
+        // Popped back to initial app state without tab property: return to primary tab
+        activeTabRef.current = 'orders';
+        setActiveTab('orders');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  const handleSelectTab = useCallback((tab: ActiveTab) => {
+    if (tab === activeTabRef.current) return;
+
+    if (typeof window !== 'undefined' && window.history?.pushState && window.history?.replaceState) {
+      if (activeTabRef.current === 'orders' && tab !== 'orders') {
+        window.history.pushState({ tab }, '');
+      } else if (activeTabRef.current !== 'orders' && tab !== 'orders') {
+        window.history.replaceState({ tab }, '');
+      } else if (activeTabRef.current !== 'orders' && tab === 'orders') {
+        window.history.pushState({ tab: 'orders' }, '');
+      }
+    }
+
+    activeTabRef.current = tab;
+    setActiveTab(tab);
+  }, []);
+
+  return { activeTab, setActiveTab, handleSelectTab };
+}
+
 export const AppContent: React.FC = () => {
   const { firebaseUser, isDemoMode, isLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<ActiveTab>('orders');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
+    if (typeof window !== 'undefined' && window.history?.state?.tab) {
+      return window.history.state.tab as ActiveTab;
+    }
+    return 'orders';
+  });
+  const activeTabRef = useRef<ActiveTab>(activeTab);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state?.tab) {
+        const nextTab = e.state.tab as ActiveTab;
+        activeTabRef.current = nextTab;
+        setActiveTab(nextTab);
+      } else if (activeTabRef.current !== 'orders') {
+        // Popped back to initial app state without tab property: return to primary tab
+        activeTabRef.current = 'orders';
+        setActiveTab('orders');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  const handleSelectTab = useCallback((tab: ActiveTab) => {
+    if (tab === activeTabRef.current) return;
+
+    if (typeof window !== 'undefined' && window.history?.pushState && window.history?.replaceState) {
+      if (activeTabRef.current === 'orders' && tab !== 'orders') {
+        window.history.pushState({ tab }, '');
+      } else if (activeTabRef.current !== 'orders' && tab !== 'orders') {
+        window.history.replaceState({ tab }, '');
+      } else if (activeTabRef.current !== 'orders' && tab === 'orders') {
+        window.history.pushState({ tab: 'orders' }, '');
+      }
+    }
+
+    activeTabRef.current = tab;
+    setActiveTab(tab);
+  }, []);
 
   if (isLoading) {
     return (
@@ -35,7 +152,7 @@ export const AppContent: React.FC = () => {
   }
 
   return (
-    <AppShell activeTab={activeTab} onSelectTab={setActiveTab}>
+    <AppShell activeTab={activeTab} onSelectTab={handleSelectTab}>
       {activeTab === 'orders' && <OrderList />}
       {activeTab === 'map' && <MapView />}
       {activeTab === 'finance' && <ExpenseList />}

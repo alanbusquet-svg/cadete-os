@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, MapPin, Navigation, Volume2, Store, Clock, Route, ChevronDown, ExternalLink } from 'lucide-react';
+import { X, ArrowLeft, MapPin, Navigation, Volume2, Store, Clock, Route, ChevronDown, ExternalLink } from 'lucide-react';
 import L from 'leaflet';
 import type { Order } from '../../types';
 import { formatCurrency } from '../../utils/formatting';
@@ -11,6 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Badge } from '../common/Badge';
 import { CARTO_DARK_MATTER_URL, CARTO_TILE_OPTIONS, DEFAULT_MAP_ZOOM } from './mapConfig';
 import { createCadeteLocationIcon, createOrderDestinationIcon } from './mapIcons';
+import { useModalBackHandler } from '../../hooks/useModalBackHandler';
 
 export interface OrderMapModalProps {
   isOpen: boolean;
@@ -32,17 +33,11 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
 
-  // Lock body scroll when open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
+  const { handleProgrammaticClose } = useModalBackHandler({
+    isOpen,
+    onClose,
+    modalId: 'order-map'
+  });
 
   // Initialize and update Leaflet route map
   useEffect(() => {
@@ -137,20 +132,35 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm">
       {/* 1-Tap Backdrop Dismissal */}
-      <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
+      <div className="fixed inset-0 cursor-pointer" onClick={onClose} aria-hidden="true" />
 
       {/* Bottom Sheet Modal Container */}
       <div className="relative w-full max-w-lg bg-zinc-950 border-t sm:border border-zinc-800 rounded-t-[2.5rem] sm:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] h-[88vh] sm:h-auto overflow-hidden z-10">
-        {/* Mobile Drag Indicator Bar */}
-        <div
-          onClick={onClose}
-          className="w-12 h-1.5 bg-zinc-700 hover:bg-zinc-500 rounded-full mx-auto mt-2.5 mb-1 sm:hidden flex-shrink-0 cursor-pointer"
+        {/* Mobile Drag Indicator Bar - Interactive touch target */}
+        <button
+          type="button"
+          onClick={handleProgrammaticClose}
+          className="w-full min-h-[44px] flex items-center justify-center py-2 sm:hidden flex-shrink-0 cursor-pointer group focus:outline-none"
+          aria-label="Tocar para cerrar"
           title="Tocar para cerrar"
-        />
+        >
+          <div className="w-12 h-1.5 bg-zinc-700 group-hover:bg-zinc-500 rounded-full transition-colors" />
+        </button>
 
         {/* Modal Header */}
         <div className="p-4 border-b border-zinc-800/80 bg-zinc-900/90 flex items-center justify-between gap-3 flex-shrink-0">
-          <div className="flex flex-col min-w-0">
+          {/* Left Back Button (Thumb Reachable) */}
+          <button
+            type="button"
+            onClick={handleProgrammaticClose}
+            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-zinc-800/80 text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700 flex items-center justify-center transition-colors shrink-0 active:scale-95"
+            aria-label="Volver"
+            title="Volver"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+
+          <div className="flex flex-col min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <Store className="w-4 h-4 text-emerald-400 shrink-0" />
               <h3 className="font-black text-base text-zinc-100 truncate">
@@ -168,7 +178,7 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
             <button
               type="button"
               onClick={handleSpeak}
-              className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25 flex items-center justify-center transition-colors active:scale-95"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25 flex items-center justify-center transition-colors active:scale-95"
               title="Escuchar indicaciones de voz"
               aria-label="Escuchar indicaciones de voz"
             >
@@ -178,9 +188,10 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
             {/* Close Button */}
             <button
               type="button"
-              onClick={onClose}
-              className="w-10 h-10 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-100 flex items-center justify-center transition-colors active:scale-95"
+              onClick={handleProgrammaticClose}
+              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-100 flex items-center justify-center transition-colors active:scale-95"
               aria-label="Cerrar modal"
+              title="Cerrar modal"
             >
               <X className="w-5 h-5" />
             </button>

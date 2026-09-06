@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
@@ -24,6 +24,25 @@ export const MaintenanceFormModal: React.FC<MaintenanceFormModalProps> = ({
   const [cost, setCost] = useState<string>('');
   const [isOilChange, setIsOilChange] = useState<boolean>(defaultIsOilChange);
   const [error, setError] = useState<string>('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setDate(getTodayDateString());
+      setItem(defaultIsOilChange ? 'Aceite Castrol 20W-50 y Filtro' : '');
+      setCost('');
+      setIsOilChange(defaultIsOilChange);
+      setError('');
+    }
+  }, [isOpen, defaultIsOilChange]);
+
+  const handleCancel = () => {
+    setItem(defaultIsOilChange ? 'Aceite Castrol 20W-50 y Filtro' : '');
+    setCost('');
+    setIsOilChange(defaultIsOilChange);
+    setDate(getTodayDateString());
+    setError('');
+    onClose();
+  };
 
   const quickItems = [
     'Aceite Castrol 20W-50',
@@ -154,8 +173,8 @@ export const MaintenanceFormModal: React.FC<MaintenanceFormModalProps> = ({
           required
         />
 
-        {/* Submit */}
-        <div className="pt-2">
+        {/* Botones de Acción */}
+        <div className="pt-2 flex flex-col gap-2">
           <Button
             type="submit"
             variant="primary"
@@ -164,6 +183,15 @@ export const MaintenanceFormModal: React.FC<MaintenanceFormModalProps> = ({
             leftIcon={<Plus className="w-6 h-6 stroke-[3]" />}
           >
             Guardar en Historial
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            fullWidth
+            onClick={handleCancel}
+          >
+            Cancelar
           </Button>
         </div>
       </form>

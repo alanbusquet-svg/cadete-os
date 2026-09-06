@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import { Button } from './Button';
+import { useModalBackHandler } from '../../hooks/useModalBackHandler';
 
 export interface ConfirmDialogProps {
   isOpen: boolean;
@@ -23,36 +24,31 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   cancelLabel = 'Cancelar',
   confirmVariant = 'danger'
 }) => {
-  // Prevent background scroll when dialog is active & handle Escape key
-  useEffect(() => {
-    if (!isOpen) return;
-
-    document.body.style.overflow = 'hidden';
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onCancel();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.body.style.overflow = '';
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, onCancel]);
+  const { handleProgrammaticClose } = useModalBackHandler({
+    isOpen,
+    onClose: onCancel,
+    modalId: 'confirm-dialog'
+  });
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       {/* Backdrop overlay */}
-      <div className="fixed inset-0" onClick={onCancel} aria-hidden="true" />
+      <div className="fixed inset-0 cursor-pointer" onClick={handleProgrammaticClose} aria-hidden="true" />
 
       {/* Dialog card */}
       <div className="relative w-full max-w-md bg-zinc-900 border-t sm:border border-zinc-800 rounded-t-[2rem] sm:rounded-3xl p-6 shadow-2xl z-10 animate-in slide-in-from-bottom-6 sm:zoom-in-95 duration-200 flex flex-col space-y-4">
-        {/* Mobile handle */}
-        <div className="w-12 h-1.5 bg-zinc-700 rounded-full mx-auto mb-1 sm:hidden flex-shrink-0" />
+        {/* Mobile handle - Interactive tap zone */}
+        <button
+          type="button"
+          onClick={handleProgrammaticClose}
+          className="w-full min-h-[44px] flex items-center justify-center py-2 sm:hidden flex-shrink-0 cursor-pointer group focus:outline-none"
+          aria-label="Tocar para cerrar"
+          title="Tocar para cerrar"
+        >
+          <div className="w-12 h-1.5 bg-zinc-700 group-hover:bg-zinc-500 rounded-full transition-colors" />
+        </button>
 
         {/* Content row */}
         <div className="flex items-start gap-4">
@@ -77,11 +73,12 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
           <button
             type="button"
-            onClick={onCancel}
-            className="w-8 h-8 rounded-xl bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 flex items-center justify-center transition-colors shrink-0"
+            onClick={handleProgrammaticClose}
+            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 flex items-center justify-center transition-colors shrink-0 active:scale-95"
             aria-label="Cerrar"
+            title="Cerrar"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -92,7 +89,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             variant="secondary"
             size="md"
             fullWidth
-            onClick={onCancel}
+            onClick={handleProgrammaticClose}
           >
             {cancelLabel}
           </Button>
@@ -111,3 +108,4 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     </div>
   );
 };
+

@@ -29,6 +29,137 @@ if (typeof globalThis.localStorage === 'undefined' || !globalThis.localStorage.c
   });
 }
 
+// Polyfill PopStateEvent
+if (typeof (globalThis as any).PopStateEvent === 'undefined') {
+  class MockPopStateEvent {
+    type: string;
+    state: any;
+    defaultPrevented: boolean = false;
+    constructor(type: string, eventInitDict?: { state?: any }) {
+      this.type = type;
+      this.state = eventInitDict?.state ?? null;
+    }
+    preventDefault() {
+      this.defaultPrevented = true;
+    }
+    stopPropagation() {}
+  }
+  (globalThis as any).PopStateEvent = MockPopStateEvent;
+  if (typeof (globalThis as any).window !== 'undefined') {
+    (globalThis as any).window.PopStateEvent = MockPopStateEvent;
+  }
+}
+
+// Polyfill window event dispatching if missing on globalThis / window
+if (typeof (globalThis as any).addEventListener === 'undefined') {
+  const windowListeners = new Map<string, Function[]>();
+  const addListener = (event: string, handler: Function) => {
+    const list = windowListeners.get(event) || [];
+    list.push(handler);
+    windowListeners.set(event, list);
+  };
+  const removeListener = (event: string, handler: Function) => {
+    const list = windowListeners.get(event) || [];
+    const idx = list.indexOf(handler);
+    if (idx !== -1) list.splice(idx, 1);
+    windowListeners.set(event, list);
+  };
+  const dispatch = (event: any) => {
+    const list = windowListeners.get(event.type || 'popstate') || [];
+    list.forEach((fn) => fn(event));
+    return true;
+  };
+
+  (globalThis as any).addEventListener = addListener;
+  (globalThis as any).removeEventListener = removeListener;
+  (globalThis as any).dispatchEvent = dispatch;
+  if (typeof (globalThis as any).window !== 'undefined') {
+    (globalThis as any).window.addEventListener = addListener;
+    (globalThis as any).window.removeEventListener = removeListener;
+    (globalThis as any).window.dispatchEvent = dispatch;
+  }
+}
+
+// Polyfill window.history for Node/Vitest test environment if missing
+if (typeof (globalThis as any).history === 'undefined' || !(globalThis as any).history?.pushState) {
+  interface HistoryEntry {
+    state: any;
+    title: string;
+    url?: string | null;
+  }
+
+  class MockHistory {
+    private stack: HistoryEntry[] = [{ state: null, title: '', url: null }];
+    private currentIndex: number = 0;
+
+    get length(): number {
+      return this.stack.length;
+    }
+
+    get state(): any {
+      return this.stack[this.currentIndex]?.state ?? null;
+    }
+
+    pushState(state: any, title: string = '', url?: string | null): void {
+      this.stack = this.stack.slice(0, this.currentIndex + 1);
+      this.stack.push({ state, title, url: url ?? null });
+      this.currentIndex = this.stack.length - 1;
+    }
+
+    replaceState(state: any, title: string = '', url?: string | null): void {
+      if (this.stack.length === 0) {
+        this.stack.push({ state, title, url: url ?? null });
+        this.currentIndex = 0;
+      } else {
+        this.stack[this.currentIndex] = { state, title, url: url ?? null };
+      }
+    }
+
+    back(): void {
+      this.go(-1);
+    }
+
+    forward(): void {
+      this.go(1);
+    }
+
+    go(delta: number = 0): void {
+      const targetIndex = this.currentIndex + delta;
+      if (targetIndex >= 0 && targetIndex < this.stack.length) {
+        this.currentIndex = targetIndex;
+        const currentState = this.state;
+        const PopEventCls = (globalThis as any).PopStateEvent;
+        const popStateEvent = PopEventCls
+          ? new PopEventCls('popstate', { state: currentState })
+          : { type: 'popstate', state: currentState };
+        if (typeof (globalThis as any).window?.dispatchEvent === 'function') {
+          (globalThis as any).window.dispatchEvent(popStateEvent);
+        } else if (typeof (globalThis as any).dispatchEvent === 'function') {
+          (globalThis as any).dispatchEvent(popStateEvent);
+        }
+      }
+    }
+
+    _reset(): void {
+      this.stack = [{ state: null, title: '', url: null }];
+      this.currentIndex = 0;
+    }
+  }
+
+  const mockHistory = new MockHistory();
+  Object.defineProperty(globalThis, 'history', {
+    value: mockHistory,
+    writable: true,
+    configurable: true
+  });
+  if (typeof (globalThis as any).window !== 'undefined') {
+    Object.defineProperty((globalThis as any).window, 'history', {
+      value: mockHistory,
+      writable: true,
+      configurable: true
+    });
+  }
+}
 
 // Polyfill minimal document / Element for Node/Vitest test environment if missing
 if (typeof globalThis.document === 'undefined' || !(globalThis as any).document.documentElement) {
