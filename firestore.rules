@@ -5,10 +5,19 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-    // All collection documents (businesses, orders, expenses, maintenance)
+    // All collection documents (orders, expenses, businesses, maintenance, shifts)
     match /{collection}/{docId} {
-      allow read, write: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Read: document must belong to authenticated user
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Create: new document must set userId to the authenticated user's uid
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Update: existing document must belong to authenticated user AND userId cannot be changed
+      allow update: if request.auth != null
+                    && resource.data.userId == request.auth.uid
+                    && request.resource.data.userId == request.auth.uid;
+      // Delete: only the owner can delete their documents
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
   }
 }
+
