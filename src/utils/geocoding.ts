@@ -113,7 +113,44 @@ export const BOLIVAR_ANCHORS: Record<string, [number, number]> = {
   'ocampo': [-36.2370, -61.1100],
   'casariego': [-36.2380, -61.1110],
   'melitona': [-36.2365, -61.1135],
-  'pompeya': [-36.2400, -61.1100]
+  'pompeya': [-36.2400, -61.1100],
+
+  // Nuevas calles y barrios de Bolívar (R3)
+  'funes': [-36.2418, -61.1112],
+  'dean funes': [-36.2418, -61.1112],
+  'boer': [-36.2245, -61.1159],
+  'castelli': [-36.2307, -61.1252],
+  'arenales': [-36.2185, -61.0973],
+  'paso': [-36.2245, -61.1140],
+  'viamonte': [-36.2325, -61.1219],
+  'calfucura': [-36.2442, -61.1321],
+  'hernandez': [-36.2285, -61.1206],
+  'alberti': [-36.2297, -61.1275],
+  'chiclana': [-36.2230, -61.1159],
+  'zapiola': [-36.2313, -61.1055],
+  'azcuenaga': [-36.2222, -61.1168],
+  'matheu': [-36.2211, -61.1173],
+  'alem': [-36.2554, -61.1012],
+  'leandro alem': [-36.2554, -61.1012],
+  'leandro n alem': [-36.2554, -61.1012],
+  'barrio san juan': [-36.2418, -61.1112],
+  'san juan': [-36.2175, -61.1021],
+  'barrio vivanco': [-36.2380, -61.1250],
+  'vivanco': [-36.2380, -61.1250],
+  'barrio los troncos': [-36.2430, -61.1080],
+  'los troncos': [-36.2430, -61.1080],
+  'barrio las lomitas': [-36.2460, -61.1150],
+  'las lomitas': [-36.2460, -61.1150],
+  'barrio villa diamante': [-36.2420, -61.1200],
+  'villa diamante': [-36.2420, -61.1200],
+  'barrio fonavi': [-36.2230, -61.1110],
+  'fonavi': [-36.2230, -61.1110],
+  'barrio cooperativa': [-36.2350, -61.1050],
+  'cooperativa': [-36.2350, -61.1050],
+  'barrio latino': [-36.2390, -61.1080],
+  'latino': [-36.2390, -61.1080],
+  'barrio jardin': [-36.2370, -61.1240],
+  'jardin': [-36.2370, -61.1240]
 };
 
 /**
@@ -213,3 +250,52 @@ export function estimateMotoEtaMinutes(distanceKm: number): number {
   const travelMinutes = (distanceKm / 30) * 60;
   return Math.max(3, Math.round(travelMinutes + 2));
 }
+
+/**
+ * Helper opcional de geocodificación online con caché en memoria y localStorage.
+ * Consulta OpenStreetMap Nominatim si una dirección específica no figura estáticamente.
+ */
+const GEO_CACHE_KEY = 'cadete_os_geocache';
+
+export async function lookupCoordinatesOnline(
+  address: string,
+  city = 'San Carlos de Bolívar'
+): Promise<[number, number] | null> {
+  const normalized = normalizeStreetName(address);
+  if (!normalized || normalized.length < 2) return null;
+
+  try {
+    const rawCache = typeof window !== 'undefined' ? localStorage.getItem(GEO_CACHE_KEY) : null;
+    const cache: Record<string, [number, number]> = rawCache ? JSON.parse(rawCache) : {};
+    const cacheKey = `${normalized}_${city.toLowerCase()}`;
+    if (cache[cacheKey]) {
+      return cache[cacheKey]!;
+    }
+
+    const url = `https://nominatim.openstreetmap.org/search?street=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}&country=Argentina&format=json`;
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0 && data[0]?.lat && data[0]?.lon) {
+      const lat = parseFloat(Number(data[0].lat).toFixed(4));
+      const lon = parseFloat(Number(data[0].lon).toFixed(4));
+
+      // Verificar que esté dentro de los límites del partido de Bolívar
+      if (lat >= -36.265 && lat <= -36.210 && lon >= -61.155 && lon <= -61.085) {
+        cache[cacheKey] = [lat, lon];
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(GEO_CACHE_KEY, JSON.stringify(cache));
+          } catch {
+            // Safe localStorage failure fallback
+          }
+        }
+        return [lat, lon];
+      }
+    }
+  } catch {
+    // Network or parse failure, fallback graceful
+  }
+  return null;
+}
+

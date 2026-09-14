@@ -46,19 +46,33 @@
   background: #3f3f46;
 }
 
-/* Leaflet Map Dark Mode Container & Controls */
+/* Leaflet Map Base Container */
 .leaflet-container {
-  background-color: #09090b !important;
   font-family: inherit;
   outline: none;
 }
 
-/* High-contrast dark mode transformation for OpenStreetMap standard tiles under outdoor motorcycle sunlight */
-.leaflet-tile-pane {
+/* Modo Blanco (Modo Claro / Original OpenStreetMap) - 100% Nítido y Cristalino */
+.map-light .leaflet-tile-pane {
+  filter: none !important;
+}
+
+.map-light.leaflet-container,
+.map-light .leaflet-container {
+  background-color: #f4f4f5 !important;
+}
+
+/* Modo Oscuro (Dark Mode) - Alto contraste para noche o baja luminosidad */
+.map-dark .leaflet-tile-pane {
   filter: invert(100%) hue-rotate(180deg) brightness(88%) contrast(125%) saturate(75%);
 }
 
-/* Dark mode popup styling */
+.map-dark.leaflet-container,
+.map-dark .leaflet-container {
+  background-color: #09090b !important;
+}
+
+/* Popup styling */
 .leaflet-popup-content-wrapper,
 .leaflet-popup-tip {
   background-color: #18181b !important; /* bg-zinc-900 */
@@ -66,6 +80,14 @@
   border: 1px solid #27272a;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.8) !important;
   border-radius: 1rem !important;
+}
+
+.map-light .leaflet-popup-content-wrapper,
+.map-light .leaflet-popup-tip {
+  background-color: #ffffff !important;
+  color: #09090b !important;
+  border: 1px solid #e4e4e7 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15) !important;
 }
 
 .leaflet-popup-content {
@@ -83,7 +105,11 @@
   color: #ffffff !important;
 }
 
-/* Dark mode zoom buttons */
+.map-light .leaflet-container a.leaflet-popup-close-button:hover {
+  color: #09090b !important;
+}
+
+/* Zoom controls */
 .leaflet-bar {
   border: 1px solid #27272a !important;
   border-radius: 1rem !important;
@@ -105,7 +131,23 @@
   color: #34d399 !important;
 }
 
-/* Dark mode attribution */
+.map-light .leaflet-bar {
+  border: 1px solid #e4e4e7 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.map-light .leaflet-bar a {
+  background-color: #ffffff !important;
+  color: #18181b !important;
+  border-bottom: 1px solid #e4e4e7 !important;
+}
+
+.map-light .leaflet-bar a:hover {
+  background-color: #f4f4f5 !important;
+  color: #059669 !important;
+}
+
+/* Map attribution */
 .leaflet-control-attribution {
   background-color: rgba(9, 9, 11, 0.85) !important;
   color: #71717a !important;
@@ -114,9 +156,18 @@
   border-top-left-radius: 8px;
 }
 
+.map-light .leaflet-control-attribution {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  color: #52525b !important;
+}
+
 .leaflet-control-attribution a {
   color: #a1a1aa !important;
   text-decoration: none;
+}
+
+.map-light .leaflet-control-attribution a {
+  color: #059669 !important;
 }
 
 /* Reset marker pin container for custom divIcons */

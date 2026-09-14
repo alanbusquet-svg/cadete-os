@@ -535,5 +535,49 @@ describe('R2: Expanded Bolívar Offline Geocoding (>= 60 anchors)', () => {
       expect(distToCenter).toBeGreaterThan(0.3);
     }
   });
+
+  it('specifically resolves "Funes 750" accurately to Calle Funes and NOT to Sarmiento or city center', () => {
+    const funesOrder: Order = {
+      ...baseOrder,
+      id: 'ord_funes_750',
+      address: 'Funes 750'
+    };
+
+    const coords = resolveOrderCoordinates(funesOrder);
+
+    // Anchor for Funes is [-36.2418, -61.1112]
+    const funesAnchor = BOLIVAR_ANCHORS['funes']!;
+    expect(funesAnchor).toBeDefined();
+
+    // Coordinates must be within door offset of Funes
+    expect(Math.abs(coords[0] - funesAnchor[0])).toBeLessThan(0.005);
+    expect(Math.abs(coords[1] - funesAnchor[1])).toBeLessThan(0.005);
+
+    // Must be in Barrio San Juan / Casariego latitude range (-36.240 to -36.246)
+    expect(coords[0]).toBeLessThan(-36.238);
+
+    // Must be far from Plaza Alsina / Sarmiento (~1.3 km away)
+    const distToSarmiento = calculateDistanceKm(coords, BOLIVAR_ANCHORS['sarmiento']!);
+    expect(distToSarmiento).toBeGreaterThan(1.0);
+
+    const distToCenter = calculateDistanceKm(coords, BOLIVAR_CENTER);
+    expect(distToCenter).toBeGreaterThan(1.0);
+  });
+
+  it('verifies additional R3 streets and barrios are registered in BOLIVAR_ANCHORS', () => {
+    const r3Streets = [
+      'funes', 'dean funes', 'boer', 'castelli', 'arenales', 'paso',
+      'viamonte', 'calfucura', 'hernandez', 'alberti', 'chiclana',
+      'zapiola', 'azcuenaga', 'matheu', 'alem', 'vivanco',
+      'barrio vivanco', 'barrio los troncos', 'barrio las lomitas',
+      'barrio villa diamante', 'barrio fonavi', 'barrio cooperativa',
+      'barrio latino', 'barrio jardin'
+    ];
+
+    for (const key of r3Streets) {
+      expect(BOLIVAR_ANCHORS[key], `Missing anchor for: ${key}`).toBeDefined();
+    }
+  });
 });
+
 

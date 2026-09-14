@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Navigation, MapPin, AlertCircle } from 'lucide-react';
+import { Navigation, MapPin, AlertCircle, Sun, Moon } from 'lucide-react';
 import L from 'leaflet';
 import type { Order } from '../../types';
 import { useOrders } from '../../hooks/useOrders';
 import { useGeolocation, BOLIVAR_CENTER } from '../../hooks/useGeolocation';
 import { useAuth } from '../../context/AuthContext';
+import { useMapTheme } from '../../hooks/useMapTheme';
 import { formatCurrency } from '../../utils/formatting';
 import { resolveOrderCoordinates } from '../../utils/geocoding';
 import { speakOrder } from '../../utils/speech';
@@ -15,6 +16,7 @@ import { OrderMapModal } from './OrderMapModal';
 export const MapView: React.FC = () => {
   const { dayOrders } = useOrders();
   const { user } = useAuth();
+  const { isDark, toggleMapTheme } = useMapTheme();
   const city = user?.settings?.cityDefault || 'San Carlos de Bolívar';
   const { location: cadeteLocation, effectiveCenter, error: gpsError } = useGeolocation();
 
@@ -254,7 +256,34 @@ export const MapView: React.FC = () => {
 
       {/* Interactive Map Card */}
       <div className="relative flex-1 w-full h-[calc(100vh-250px)] md:h-[calc(100vh-210px)] min-h-[400px] rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl bg-zinc-950">
-        <div ref={mapContainerRef} className="w-full h-full" id="cadete-full-map-canvas" />
+        <div
+          ref={mapContainerRef}
+          className={`w-full h-full transition-colors ${isDark ? 'map-dark' : 'map-light'}`}
+          id="cadete-full-map-canvas"
+        />
+
+        {/* Floating Controls: Top-Right (Theme Toggle: Modo Blanco / Oscuro) */}
+        <div className="absolute top-4 right-4 z-[400] flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleMapTheme}
+            className="h-11 min-w-[44px] px-3.5 rounded-2xl bg-zinc-900/95 hover:bg-zinc-800 border border-zinc-700/80 text-zinc-100 shadow-2xl backdrop-blur-md flex items-center gap-2 transition-all active:scale-95"
+            title={isDark ? 'Cambiar a Modo Blanco (Mapa Claro)' : 'Cambiar a Modo Oscuro'}
+            aria-label={isDark ? 'Cambiar a Modo Blanco (Mapa Claro)' : 'Cambiar a Modo Oscuro'}
+          >
+            {isDark ? (
+              <>
+                <Sun className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="text-xs font-bold text-zinc-200">Modo Blanco</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-4 h-4 text-indigo-400 shrink-0" />
+                <span className="text-xs font-bold text-zinc-200">Modo Oscuro</span>
+              </>
+            )}
+          </button>
+        </div>
 
         {/* Floating Controls: GPS Re-Center Button */}
         <div className="absolute bottom-4 right-4 z-[400] flex flex-col gap-2">

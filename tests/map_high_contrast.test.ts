@@ -15,9 +15,11 @@ describe('High-Contrast Dark Tiles & Street Visibility Suite (tests/map_high_con
   const cssPath = resolve(__dirname, '../src/index.css');
   const cssContent = readFileSync(cssPath, 'utf-8');
 
-  it('1. applies .leaflet-tile-pane high-contrast filter for motorcycle sunlight visibility', () => {
+  it('1. applies .leaflet-tile-pane high-contrast filter for motorcycle sunlight visibility in dark mode and clean tiles in light mode', () => {
     expect(cssContent).toContain('.leaflet-tile-pane');
     expect(cssContent).toMatch(/filter:\s*invert\(100%\)\s*hue-rotate\(180deg\)\s*brightness\(88%\)\s*contrast\(125%\)\s*saturate\(75%\)/);
+    expect(cssContent).toContain('.map-light .leaflet-tile-pane');
+    expect(cssContent).toContain('filter: none !important');
   });
 
   it('2. OpenStreetMap tile configuration uses zero paid API keys, zero watermarks, and high maxZoom', () => {

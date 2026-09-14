@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, ArrowLeft, MapPin, Volume2, VolumeX, Crosshair, Store, Clock, Route, Loader2 } from 'lucide-react';
+import { X, ArrowLeft, MapPin, Volume2, VolumeX, Crosshair, Store, Clock, Route, Loader2, Sun, Moon } from 'lucide-react';
 import L from 'leaflet';
 import type { Order } from '../../types';
 import { formatCurrency } from '../../utils/formatting';
@@ -7,6 +7,7 @@ import { speakOrder, isSpeechMuted, setSpeechMuted, cancelSpeech } from '../../u
 import { resolveOrderCoordinates, calculateDistanceKm, estimateMotoEtaMinutes } from '../../utils/geocoding';
 import { fetchOsrmRoute } from '../../utils/routing';
 import { useGeolocation, BOLIVAR_CENTER } from '../../hooks/useGeolocation';
+import { useMapTheme } from '../../hooks/useMapTheme';
 import { Badge } from '../common/Badge';
 import { CARTO_DARK_MATTER_URL, CARTO_TILE_OPTIONS, DEFAULT_MAP_ZOOM } from './mapConfig';
 import { createCadeteLocationIcon, createOrderDestinationIcon } from './mapIcons';
@@ -24,6 +25,7 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
   order
 }) => {
   const { location: cadeteLocation } = useGeolocation();
+  const { isDark, toggleMapTheme } = useMapTheme();
 
   const [speechMuted, setSpeechMutedState] = useState<boolean>(() => isSpeechMuted());
   const [distanceKm, setDistanceKm] = useState<number>(0);
@@ -325,6 +327,21 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {/* Theme Toggle Button (Modo Blanco / Modo Oscuro) */}
+            <button
+              type="button"
+              onClick={toggleMapTheme}
+              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-zinc-100 flex items-center justify-center transition-colors active:scale-95"
+              title={isDark ? 'Cambiar a Modo Blanco (Mapa Claro)' : 'Cambiar a Modo Oscuro'}
+              aria-label={isDark ? 'Cambiar a Modo Blanco (Mapa Claro)' : 'Cambiar a Modo Oscuro'}
+            >
+              {isDark ? (
+                <Sun className="w-5 h-5 text-amber-400" />
+              ) : (
+                <Moon className="w-5 h-5 text-indigo-400" />
+              )}
+            </button>
+
             {/* Repeat Audio Voice Button */}
             <button
               type="button"
@@ -380,7 +397,11 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
 
         {/* Interactive Leaflet Map Canvas */}
         <div className="flex-1 w-full min-h-[280px] sm:min-h-[340px] relative bg-zinc-950 overflow-hidden">
-          <div ref={mapContainerRef} className="w-full h-full" id="order-route-map-canvas" />
+          <div
+            ref={mapContainerRef}
+            className={`w-full h-full transition-colors ${isDark ? 'map-dark' : 'map-light'}`}
+            id="order-route-map-canvas"
+          />
         </div>
 
         {/* Modal Footer Controls — 100% IN-APP CONTROLS (Zero External Redirects) */}
