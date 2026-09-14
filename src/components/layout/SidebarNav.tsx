@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bike, Map, Wallet, Store, Wrench, Settings, ShieldCheck, ChevronRight, Sparkles, Zap, LogOut } from 'lucide-react';
+import { Bike, Map, Wallet, Store, Wrench, Settings, ShieldCheck, ChevronRight, Sparkles, Zap, LogOut, Crown } from 'lucide-react';
 import type { ActiveTab } from '../../types';
 import { useOrders } from '../../hooks/useOrders';
 import { useBusinesses } from '../../hooks/useBusinesses';
@@ -110,6 +110,21 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ activeTab, onSelectTab }
             >
               Crear Cuenta
             </button>
+          </div>
+        ) : trialInfo.isLifetime ? (
+          <div className="bg-gradient-to-r from-emerald-950/40 to-zinc-900/90 border border-emerald-500/40 rounded-2xl p-3 flex items-center justify-between gap-2 shadow-sm shadow-emerald-950/20">
+            <div className="flex items-center gap-2 min-w-0">
+              <Crown className="w-4 h-4 text-amber-400 shrink-0" />
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-black text-emerald-300">Plan Pro Vitalicio</span>
+                <span className="text-[10px] text-zinc-400 truncate max-w-[120px]">
+                  {user?.email || 'alanbusquet@gmail.com'}
+                </span>
+              </div>
+            </div>
+            <span className="text-[9px] uppercase font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+              Vitalicio
+            </span>
           </div>
         ) : (
           <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-3 flex items-center justify-between gap-2">

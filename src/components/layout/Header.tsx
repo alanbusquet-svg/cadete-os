@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bike, Calendar, ChevronLeft, ChevronRight, LogOut, Sparkles, Zap, Volume2, VolumeX } from 'lucide-react';
+import { Bike, Calendar, ChevronLeft, ChevronRight, LogOut, Sparkles, Zap, Volume2, VolumeX, Crown } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useFinancials } from '../../hooks/useFinancials';
@@ -82,6 +82,14 @@ export const Header: React.FC = () => {
                 Acceder
               </span>
             </button>
+          ) : trialInfo.isLifetime ? (
+            <div
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 text-emerald-300 shadow-sm shadow-emerald-950/20"
+              title="Plan Pro de por Vida — Sin vencimiento"
+            >
+              <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>Plan Pro Vitalicio</span>
+            </div>
           ) : (
             <div
               className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border ${

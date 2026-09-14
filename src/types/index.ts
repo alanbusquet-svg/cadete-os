@@ -19,6 +19,8 @@ export interface TrialInfo {
   daysRemaining: number;
   isExpired: boolean;
   trialEndsAt: string;
+  isLifetime?: boolean;
+  planName?: string;
 }
 
 export interface UserProfile {
@@ -29,6 +31,7 @@ export interface UserProfile {
   createdAt: string;
   trialEndsAt?: string;
   subscriptionStatus?: 'trial' | 'active' | 'expired';
+  plan?: 'lifetime' | 'pro' | 'starter';
   settings: {
     currency: "ARS";
     cityDefault: CityDefault;

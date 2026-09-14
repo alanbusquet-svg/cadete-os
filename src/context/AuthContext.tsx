@@ -79,6 +79,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               createdAt: data.createdAt || fbUser.metadata?.creationTime || new Date().toISOString(),
               trialEndsAt: data.trialEndsAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
               subscriptionStatus: data.subscriptionStatus || 'trial',
+              plan: data.plan || 'starter',
               settings: {
                 ...DEFAULT_USER.settings,
                 ...(data.settings || {})
@@ -95,9 +96,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               createdAt: fbUser.metadata?.creationTime || new Date().toISOString(),
               trialEndsAt,
               subscriptionStatus: 'trial',
+              plan: 'starter',
               settings: { ...DEFAULT_USER.settings }
             };
             await setDoc(userDocRef, profile);
+          }
+
+          // Special Lifetime Pro Plan for Alan (Founder/Owner)
+          if (fbUser.email === 'alanbusquet@gmail.com') {
+            profile.subscriptionStatus = 'active';
+            profile.plan = 'lifetime';
+            profile.trialEndsAt = '2099-12-31T23:59:59.999Z';
+            await setDoc(userDocRef, {
+              subscriptionStatus: 'active',
+              plan: 'lifetime',
+              trialEndsAt: '2099-12-31T23:59:59.999Z'
+            }, { merge: true }).catch(() => {});
           }
         } catch (e) {
           console.warn('Firestore profile fetch failed, using local/cached profile:', e);
@@ -110,6 +124,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               displayName: fbUser.displayName || fbUser.email?.split('@')[0] || 'Cadete',
               photoURL: fbUser.photoURL || undefined
             };
+          }
+          if (fbUser.email === 'alanbusquet@gmail.com') {
+            profile.subscriptionStatus = 'active';
+            profile.plan = 'lifetime';
+            profile.trialEndsAt = '2099-12-31T23:59:59.999Z';
           }
         }
 

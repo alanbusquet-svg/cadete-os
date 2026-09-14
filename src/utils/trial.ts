@@ -38,15 +38,20 @@ export function calculateTrialStatus(
   const daysRemaining = Math.max(0, Math.ceil(msRemaining / (1000 * 60 * 60 * 24)));
   const isTrialActive = msRemaining > 0;
   
-  // If explicitly active subscription, it is not expired even if trial ended
-  const isExpired = profile.subscriptionStatus === 'active'
+  // Lifetime or Founder accounts (including Alan)
+  const isLifetime = profile.plan === 'lifetime' || profile.email === 'alanbusquet@gmail.com';
+
+  // If explicitly active subscription or lifetime, it is not expired even if trial ended
+  const isExpired = (profile.subscriptionStatus === 'active' || isLifetime)
     ? false
     : (!isTrialActive || profile.subscriptionStatus === 'expired');
 
   return {
-    isTrialActive,
-    daysRemaining,
+    isTrialActive: isLifetime ? true : isTrialActive,
+    daysRemaining: isLifetime ? 99999 : daysRemaining,
     isExpired,
-    trialEndsAt
+    trialEndsAt: isLifetime ? '2099-12-31T23:59:59.999Z' : trialEndsAt,
+    isLifetime,
+    planName: isLifetime ? 'Plan Pro Vitalicio' : (profile.subscriptionStatus === 'active' ? 'Plan Pro Activo' : undefined)
   };
 }
