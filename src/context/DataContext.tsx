@@ -2,7 +2,7 @@
 // CADETE OS - DATA CONTEXT & DUAL-LAYER SYNC
 // ==========================================
 
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react';
 import type { Business, Expense, MaintenanceRecord, Order, Shift } from '../types';
 import { useAuth } from './AuthContext';
 import { storage } from '../lib/storage';
@@ -64,6 +64,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
 
+  // Deletion tracking refs so safe merge never resurrects explicitly deleted entities
+  const deletedBusinessIdsRef = useRef<Set<string>>(new Set());
+  const deletedOrderIdsRef = useRef<Set<string>>(new Set());
+  const deletedExpenseIdsRef = useRef<Set<string>>(new Set());
+
   // Load data & real-time sync listeners on userId / auth change
   useEffect(() => {
     if (!userId) return;
@@ -91,9 +96,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       COLLECTIONS.ORDERS,
       userId,
       (remoteOrders) => {
-        const sorted = [...remoteOrders].sort((a, b) => b.timestamp - a.timestamp);
-        setOrders(sorted);
-        storage.saveOrders(userId, sorted);
+        setOrders((prev) => {
+          const remoteIds = new Set(remoteOrders.map((o) => o.id));
+          const unsynced = prev.filter(
+            (o) => !remoteIds.has(o.id) && !deletedOrderIdsRef.current.has(o.id) && o.userId === userId
+          );
+          if (unsynced.length > 0) {
+            unsynced.forEach((o) => {
+              firestoreService.saveDocument(COLLECTIONS.ORDERS, o).catch(() => {});
+            });
+          }
+          const merged = [...remoteOrders, ...unsynced].sort((a, b) => b.timestamp - a.timestamp);
+          storage.saveOrders(userId, merged);
+          return merged;
+        });
       }
     );
 
@@ -101,9 +117,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       COLLECTIONS.EXPENSES,
       userId,
       (remoteExpenses) => {
-        const sorted = [...remoteExpenses].sort((a, b) => b.timestamp - a.timestamp);
-        setExpenses(sorted);
-        storage.saveExpenses(userId, sorted);
+        setExpenses((prev) => {
+          const remoteIds = new Set(remoteExpenses.map((e) => e.id));
+          const unsynced = prev.filter(
+            (e) => !remoteIds.has(e.id) && !deletedExpenseIdsRef.current.has(e.id) && e.userId === userId
+          );
+          if (unsynced.length > 0) {
+            unsynced.forEach((e) => {
+              firestoreService.saveDocument(COLLECTIONS.EXPENSES, e).catch(() => {});
+            });
+          }
+          const merged = [...remoteExpenses, ...unsynced].sort((a, b) => b.timestamp - a.timestamp);
+          storage.saveExpenses(userId, merged);
+          return merged;
+        });
       }
     );
 
@@ -111,8 +138,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       COLLECTIONS.BUSINESSES,
       userId,
       (remoteBusinesses) => {
-        setBusinesses(remoteBusinesses);
-        storage.saveBusinesses(userId, remoteBusinesses);
+        setBusinesses((prev) => {
+          const remoteIds = new Set(remoteBusinesses.map((b) => b.id));
+          const unsynced = prev.filter(
+            (b) => !remoteIds.has(b.id) && !deletedBusinessIdsRef.current.has(b.id) && b.userId === userId
+          );
+          if (unsynced.length > 0) {
+            unsynced.forEach((b) => {
+              firestoreService.saveDocument(COLLECTIONS.BUSINESSES, b).catch(() => {});
+            });
+          }
+          const merged = [...remoteBusinesses, ...unsynced];
+          storage.saveBusinesses(userId, merged);
+          return merged;
+        });
       }
     );
 
@@ -210,13 +249,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
 
     if (!isDemoMode && userId !== 'cadete_demo_1' && updatedTarget) {
-      firestoreService.updateDocument(COLLECTIONS.ORDERS, id, partial).catch((err) => {
+      firestoreService.saveDocument(COLLECTIONS.ORDERS, updatedTarget).catch((err) => {
         console.warn('Firestore updateOrder sync error:', err);
       });
     }
   };
 
   const deleteOrder = (id: string) => {
+    deletedOrderIdsRef.current.add(id);
     setOrders((prev) => {
       const updated = prev.filter((o) => o.id !== id);
       storage.saveOrders(userId, updated);
@@ -291,14 +331,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updateExpense = (id: string, partial: Partial<Expense>) => {
+    let updatedTarget: Expense | undefined;
+
     setExpenses((prev) => {
       const updated = prev.map((expense) => {
         if (expense.id === id) {
-          return {
+          updatedTarget = {
             ...expense,
             ...partial,
             amount: partial.amount !== undefined ? Number(partial.amount) : expense.amount
           };
+          return updatedTarget;
         }
         return expense;
       });
@@ -306,14 +349,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return updated;
     });
 
-    if (!isDemoMode && userId !== 'cadete_demo_1') {
-      firestoreService.updateDocument(COLLECTIONS.EXPENSES, id, partial).catch((err) => {
+    if (!isDemoMode && userId !== 'cadete_demo_1' && updatedTarget) {
+      firestoreService.saveDocument(COLLECTIONS.EXPENSES, updatedTarget).catch((err) => {
         console.warn('Firestore updateExpense sync error:', err);
       });
     }
   };
 
   const deleteExpense = (id: string) => {
+    deletedExpenseIdsRef.current.add(id);
     setExpenses((prev) => {
       const updated = prev.filter((e) => e.id !== id);
       storage.saveExpenses(userId, updated);
@@ -362,10 +406,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updateBusiness = (id: string, partial: Partial<Business>) => {
+    let updatedTarget: Business | undefined;
+
     setBusinesses((prev) => {
       const updated = prev.map((business) => {
         if (business.id === id) {
-          return {
+          updatedTarget = {
             ...business,
             ...partial,
             defaultPrices: partial.defaultPrices
@@ -376,6 +422,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
               : business.defaultPrices
           };
+          return updatedTarget;
         }
         return business;
       });
@@ -383,14 +430,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return updated;
     });
 
-    if (!isDemoMode && userId !== 'cadete_demo_1') {
-      firestoreService.updateDocument(COLLECTIONS.BUSINESSES, id, partial).catch((err) => {
+    if (!isDemoMode && userId !== 'cadete_demo_1' && updatedTarget) {
+      firestoreService.saveDocument(COLLECTIONS.BUSINESSES, updatedTarget).catch((err) => {
         console.warn('Firestore updateBusiness sync error:', err);
       });
     }
   };
 
   const deleteBusiness = (id: string) => {
+    deletedBusinessIdsRef.current.add(id);
     setBusinesses((prev) => {
       const updated = prev.filter((b) => b.id !== id);
       storage.saveBusinesses(userId, updated);
