@@ -262,3 +262,68 @@ Integrity mode: development
 - [ ] Presionar el botón "Atrás" del navegador o celular cierra cualquier modal activo sin salir de Cadete OS.
 - [ ] `npm run test` pasa el 100% de los tests (más de 610 tests automatizados, 0 fallos).
 - [ ] `npm run build` compila con código de salida 0 sin errores de TypeScript estricto.
+
+## 2026-09-14T04:10:11Z
+
+# Teamwork Project Prompt — Final
+
+> Status: 🚀 Launched
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+> Requested team: Equipo completo de Front-End, UX/UI y QA Automation
+
+Eliminación de la marca de agua "API KEY REQUIRED" en los mapas de Cadete OS reemplazando el proveedor de tiles por una capa libre de alta fidelidad sin restricciones (OpenStreetMap / ESRI), y erradicación total de cualquier enlace, botón o menú que expulse al repartidor hacia aplicaciones externas (Google Maps / Waze), garantizando una experiencia de navegación 100% autónoma dentro de la app.
+
+Working directory: d:\SaaS de delivery\SaaS
+Integrity mode: development
+
+---
+
+## Contexto del Problema
+
+1. **Marca de agua intrusiva en el mapa:** El proveedor CartoDB (`basemaps.cartocdn.com`) comenzó a estampar en todas las teselas la marca de agua diagonal *"API KEY REQUIRED carto.com/basemaps/apikey"*, arruinando la visibilidad y estética del mapa.
+2. **Botones que expulsan al usuario:** Existen botones residuales (en el formulario de nuevo viaje `OrderFormModal` y en el pie de ruta `OrderMapModal`) que abren Google Maps o Waze externamente. El usuario exige terminantemente: *"que no haya ningún botón ni nada que te saque de la app y te lleve a maps, quiero todo dentro de la app"*.
+
+---
+
+## Requirements
+
+### R1. Reemplazo del Proveedor de Mapa por Capa Libre sin Marcas de Agua
+- Reemplazar las URLs de CartoDB en `src/components/map/mapConfig.ts` por un proveedor de teselas libre de alta disponibilidad, 100% gratuito, sin clave de API y sin marcas de agua (OpenStreetMap / ESRI World Canvas).
+- Aplicar estilizado Dark Mode de alto contraste para que las calles, avenidas y nombres de San Carlos de Bolívar se lean con máxima claridad tanto de día bajo el sol como de noche.
+- Garantizar que ni en `MapView` ni en `OrderMapModal` aparezca ninguna leyenda, texto de error ni marca de agua.
+
+### R2. Erradicación Total de Redirecciones Externas a Maps o Waze
+- **`OrderMapModal.tsx`**: Eliminar el menú desplegable "Google Maps / Waze" y el botón que ejecutaba `openNavigation`. Reemplazar la barra de acciones inferior con controles 100% in-app:
+  - Botón de centrado/enfoque de ruta ("Enfocar Ruta / Destino").
+  - Botón principal de retorno ("Volver a Viajes", $\ge 52\text{px}$).
+  - Control de audio/voz integrado.
+- **`OrderFormModal.tsx`**: Eliminar el botón con icono de navegación (`openNavigation`) ubicado dentro del campo de texto de dirección que abría Google Maps externamente.
+- **Auditoría global**: Asegurar que ningún componente del sistema invoque `window.open` a URLs de Google Maps o Waze para navegación. Todo el ruteo, cálculo de distancia (km), tiempo en moto (min) y visualización gráfica debe ocurrir exclusivamente dentro de Cadete OS.
+
+### R3. Controles y Experiencia de Mapa 100% In-App
+- Mantener y optimizar los controles flotantes en pantalla:
+  - Botón de recentrado GPS con touch target de 56px para el pulgar.
+  - Trazado de polilínea OSRM siguiendo las calles reales de Bolívar.
+  - Indicadores claros de destino, importe y modalidad de cobro (efectivo/transferencia).
+
+### R4. Calidad, Tests y Compilación Estricta
+- Actualizar o refactorizar los tests que validaban la existencia de botones externos para que verifiquen el nuevo comportamiento 100% in-app.
+- Asegurar que `npm run test` pase al 100% (todas las suites sin fallos) y `npm run build` termine con código 0.
+
+---
+
+## Acceptance Criteria
+
+### Visualización del Mapa (R1)
+- [ ] En la pestaña "Mapa" (`MapView`) y en el modal de ruta (`OrderMapModal`), las calles se ven impecables, nítidas y sin ninguna marca de agua de "API KEY REQUIRED".
+- [ ] La carga de teselas es instantánea y los nombres de calles de Bolívar son legibles en exteriores.
+
+### Erradicación de Salidas Externas (R2)
+- [ ] Cero botones o enlaces que abran Google Maps (`google.com/maps`) o Waze (`waze.com`) en toda la aplicación.
+- [ ] En `OrderMapModal`, no existe el botón ni el desplegable de aplicaciones externas.
+- [ ] En `OrderFormModal`, el campo de dirección no contiene ningún botón que redirija fuera de la aplicación.
+
+### Calidad y Estabilidad (R4)
+- [ ] `npm run test` pasa el 100% de los tests automatizados sin errores.
+- [ ] `npm run build` compila con código 0 (`tsc && vite build`).
+

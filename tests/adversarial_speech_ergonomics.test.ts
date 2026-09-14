@@ -481,9 +481,10 @@ describe('CHALLENGER MAP 2 — Adversarial Speech & UI Ergonomics Empirical Suit
       expect(modalSrc).toContain('Volver a Viajes');
       expect(modalSrc).toContain('flex-1 min-h-[52px]');
 
-      // Cómo ir external button >= 52px
+      // In-App focus and audio buttons >= 52px
       expect(modalSrc).toContain('min-h-[52px] px-3.5');
       expect(modalSrc).toContain('min-h-[52px] w-10');
+      expect(modalSrc).toContain('Enfocar Ruta');
 
       // Audio repeat button
       expect(modalSrc).toContain('Volume2');
@@ -491,6 +492,9 @@ describe('CHALLENGER MAP 2 — Adversarial Speech & UI Ergonomics Empirical Suit
 
       // 1-tap backdrop dismissal
       expect(modalSrc).toContain('onClick={onClose}');
+
+      // Zero external redirects
+      expect(modalSrc).not.toContain('openNavigation');
     });
 
     it('audits MapView.tsx for floating GPS recenter button (>= 52px touch target)', () => {

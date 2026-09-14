@@ -17,16 +17,19 @@ describe('High-Contrast Dark Tiles & Street Visibility Suite (tests/map_high_con
 
   it('1. applies .leaflet-tile-pane high-contrast filter for motorcycle sunlight visibility', () => {
     expect(cssContent).toContain('.leaflet-tile-pane');
-    expect(cssContent).toMatch(/filter:\s*contrast\(140%\)\s*brightness\(125%\)\s*saturate\(115%\)/);
+    expect(cssContent).toMatch(/filter:\s*invert\(100%\)\s*hue-rotate\(180deg\)\s*brightness\(88%\)\s*contrast\(125%\)\s*saturate\(75%\)/);
   });
 
-  it('2. CartoDB Dark Matter tile configuration uses zero paid API keys and valid tile subdomains', () => {
-    expect(CARTO_DARK_MATTER_URL).toBe('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png');
+  it('2. OpenStreetMap tile configuration uses zero paid API keys, zero watermarks, and high maxZoom', () => {
+    expect(CARTO_DARK_MATTER_URL).toBe('https://tile.openstreetmap.org/{z}/{x}/{y}.png');
     expect(CARTO_DARK_MATTER_URL).not.toContain('key=');
     expect(CARTO_DARK_MATTER_URL).not.toContain('token=');
-    expect(CARTO_TILE_OPTIONS.subdomains).toBe('abcd');
-    expect(CARTO_TILE_OPTIONS.maxZoom).toBe(20);
-    expect(CARTO_TILE_OPTIONS.detectRetina).toBe(true);
+    expect(CARTO_DARK_MATTER_URL).not.toContain('basemaps.cartocdn.com');
+    expect(CARTO_TILE_OPTIONS.maxZoom).toBe(19);
+    expect(CARTO_TILE_OPTIONS.minZoom).toBe(3);
+    expect(CARTO_TILE_OPTIONS.crossOrigin).toBe(true);
+    expect(CARTO_TILE_OPTIONS.attribution).toContain('OpenStreetMap');
+    expect(CARTO_TILE_OPTIONS.attribution).not.toContain('CARTO');
   });
 
   it('3. cadete pulsing GPS beacon uses high-visibility blue ring with animate-ping', () => {

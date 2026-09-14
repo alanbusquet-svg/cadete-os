@@ -7,6 +7,8 @@ export const DEFAULT_COUNTRY = "Argentina";
 
 /**
  * Genera el deep link universal 100% gratuito para Google Maps
+ * @deprecated Cadete OS ahora utiliza navegación y mapa 100% integrados in-app.
+ * Esta función se mantiene exclusivamente para compatibilidad con suites de test unitarias heredadas.
  * @param address Dirección de entrega (ej: "Av. San Martín 450")
  * @param city Ciudad por defecto ("San Carlos de Bolívar")
  * @param country País por defecto ("Argentina"). Si es vacío o no se provee, no se concatena.
@@ -25,6 +27,8 @@ export function getGoogleMapsUrl(
 
 /**
  * Genera el deep link universal 100% gratuito para Waze
+ * @deprecated Cadete OS ahora utiliza navegación y mapa 100% integrados in-app.
+ * Esta función se mantiene exclusivamente para compatibilidad con suites de test unitarias heredadas.
  * @param address Dirección de entrega (ej: "Av. San Martín 450")
  * @param city Ciudad por defecto ("San Carlos de Bolívar")
  * @param country País por defecto ("Argentina"). Si es vacío o no se provee, no se concatena.
@@ -50,6 +54,8 @@ export function isValidAddress(address?: string): boolean {
 
 /**
  * Abre el enlace de navegación en una nueva ventana / app del sistema
+ * @deprecated Cadete OS ahora utiliza navegación y mapa 100% integrados in-app.
+ * Cero componentes en producción invocan esta función.
  */
 export function openNavigation(
   address: string,

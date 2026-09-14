@@ -6,10 +6,9 @@ import { Select } from '../common/Select';
 import { useBusinesses } from '../../hooks/useBusinesses';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
-import { openNavigation, isValidAddress } from '../../utils/navigation';
 import { speakSuccess } from '../../utils/speech';
 import type { ZoneType, PayerType, PaymentMethodType } from '../../types';
-import { Navigation, MapPin, Plus, DollarSign, Phone, ChevronDown } from 'lucide-react';
+import { MapPin, Plus, DollarSign, Phone, ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export interface OrderFormModalProps {
@@ -22,7 +21,6 @@ export const OrderFormModal: React.FC<OrderFormModalProps> = ({ isOpen, onClose 
   const { addOrder, selectedDate } = useData();
   const { user } = useAuth();
   const city = user.settings?.cityDefault || 'San Carlos de Bolívar';
-  const country = user.settings?.countryDefault || 'Argentina';
 
   const [businessId, setBusinessId] = useState<string>('');
   const [address, setAddress] = useState<string>('');
@@ -354,7 +352,7 @@ export const OrderFormModal: React.FC<OrderFormModalProps> = ({ isOpen, onClose 
               </div>
             </div>
 
-            {/* Dirección de Entrega con botón GPS */}
+            {/* Dirección de Entrega */}
             <div className="flex flex-col gap-1.5">
               <Input
                 label={`Dirección de Entrega (${city})`}
@@ -362,18 +360,6 @@ export const OrderFormModal: React.FC<OrderFormModalProps> = ({ isOpen, onClose 
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 leftElement={<MapPin className="w-5 h-5 text-zinc-400" />}
-                rightElement={
-                  isValidAddress(address) ? (
-                    <button
-                      type="button"
-                      onClick={() => openNavigation(address, 'google', city, country)}
-                      className="p-1.5 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
-                      title="Probar GPS Google Maps"
-                    >
-                      <Navigation className="w-4 h-4" />
-                    </button>
-                  ) : undefined
-                }
               />
             </div>
 

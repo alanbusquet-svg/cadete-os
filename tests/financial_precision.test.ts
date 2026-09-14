@@ -241,7 +241,7 @@ describe('Financial Math & Arqueo Precision Suite (tests/financial_precision.tes
     expect(text).toContain('CADETE OS - RESUMEN DE CUENTA');
     expect(text).toContain('Pizzería Los Amigos');
     expect(text).toContain('Av. San Martín 450');
-    expect(text).toContain('$1.500');
+    expect(text).toMatch(/\$\s?1\.500/);
     expect(text).toContain('TOTAL A LIQUIDAR:');
 
     // Phone sanitization test

@@ -53,9 +53,9 @@
   outline: none;
 }
 
-/* High-contrast boost for CartoDB Dark Matter under outdoor motorcycle sunlight */
+/* High-contrast dark mode transformation for OpenStreetMap standard tiles under outdoor motorcycle sunlight */
 .leaflet-tile-pane {
-  filter: contrast(140%) brightness(125%) saturate(115%);
+  filter: invert(100%) hue-rotate(180deg) brightness(88%) contrast(125%) saturate(75%);
 }
 
 /* Dark mode popup styling */

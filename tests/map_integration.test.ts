@@ -4,6 +4,8 @@ import { resolve } from 'path';
 import {
   BOLIVAR_COORDINATES,
   DEFAULT_MAP_ZOOM,
+  OSM_TILE_URL,
+  OSM_TILE_OPTIONS,
   CARTO_DARK_MATTER_URL,
   CARTO_TILE_OPTIONS
 } from '../src/components/map/mapConfig';
@@ -20,15 +22,17 @@ describe('Map Configuration & Dark Matter Tiles (mapConfig.ts)', () => {
     expect(DEFAULT_MAP_ZOOM).toBe(14);
   });
 
-  it('configures CartoDB Dark Matter tile URL without API keys', () => {
-    expect(CARTO_DARK_MATTER_URL).toBe(
-      'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+  it('configures OpenStreetMap standard tile URL without API keys or watermarks', () => {
+    expect(OSM_TILE_URL).toBe(
+      'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
     );
-    expect(CARTO_TILE_OPTIONS.subdomains).toBe('abcd');
-    expect(CARTO_TILE_OPTIONS.maxZoom).toBe(20);
-    expect(CARTO_TILE_OPTIONS.detectRetina).toBe(true);
-    expect(CARTO_TILE_OPTIONS.attribution).toContain('CARTO');
-    expect(CARTO_TILE_OPTIONS.attribution).toContain('OpenStreetMap');
+    expect(OSM_TILE_OPTIONS.maxZoom).toBe(19);
+    expect(OSM_TILE_OPTIONS.minZoom).toBe(3);
+    expect(OSM_TILE_OPTIONS.crossOrigin).toBe(true);
+    expect(OSM_TILE_OPTIONS.attribution).toContain('OpenStreetMap');
+    expect(OSM_TILE_OPTIONS.attribution).not.toContain('CARTO');
+    expect(CARTO_DARK_MATTER_URL).toBe(OSM_TILE_URL);
+    expect(CARTO_TILE_OPTIONS).toBe(OSM_TILE_OPTIONS);
   });
 });
 

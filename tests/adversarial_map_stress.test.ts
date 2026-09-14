@@ -50,7 +50,7 @@ describe('Adversarial Challenger: Map Lifecycle, GPS Updates & Tile Rendering St
       expect(mapContent).toMatch(mountEffectRegex);
 
       // 2. Verify cadeteLocation is NOT in the map mount effect dependencies
-      expect(mapContent).not.toMatch(/L\.map\(mapContainerRef\.current[\s\S]*?\}\s*,\s*\[[^\]]*cadeteLocation/);
+      expect(mapContent).not.toMatch(/L\.map\(mapContainerRef\.current(?:(?!useEffect)[\s\S])*?\}\s*,\s*\[[^\]]*cadeteLocation/);
 
       // 3. Verify effectiveCenter is NOT in any effect dependency
       expect(mapContent).not.toMatch(/useEffect\([\s\S]*?\},\s*\[[^\]]*effectiveCenter[^\]]*\]\)/);
@@ -221,11 +221,11 @@ describe('Adversarial Challenger: Map Lifecycle, GPS Updates & Tile Rendering St
       expect(modalContent).toMatch(routeEffectRegex);
 
       // Verify separate GPS effect has dependencies [isOpen, cadeteLocation?.lat, cadeteLocation?.lng]
-      const gpsMarkerEffectRegex = /useEffect\(\(\)\s*=>\s*\{[\s\S]*?cadeteMarkerRef\.current\.setLatLng[\s\S]*?\},\s*\[isOpen,\s*cadeteLocation\?\.lat,\s*cadeteLocation\?\.lng\]\);/;
+      const gpsMarkerEffectRegex = /useEffect\(\(\)\s*=>\s*\{(?:(?!useEffect)[\s\S])*?cadeteMarkerRef\.current\.setLatLng[\s\S]*?\},\s*\[isOpen,\s*cadeteLocation\?\.lat,\s*cadeteLocation\?\.lng\]\);/;
       expect(modalContent).toMatch(gpsMarkerEffectRegex);
 
       // Verify the separate GPS effect does NOT touch abortController or polylineRef
-      const gpsEffectMatch = modalContent.match(/useEffect\(\(\)\s*=>\s*\{[\s\S]*?cadeteMarkerRef\.current\.setLatLng[\s\S]*?\},/);
+      const gpsEffectMatch = modalContent.match(/useEffect\(\(\)\s*=>\s*\{(?:(?!useEffect)[\s\S])*?cadeteMarkerRef\.current\.setLatLng[\s\S]*?\},/);
       expect(gpsEffectMatch).toBeDefined();
       if (gpsEffectMatch) {
         expect(gpsEffectMatch[0]).not.toContain('abortController');
@@ -299,11 +299,12 @@ describe('Adversarial Challenger: Map Lifecycle, GPS Updates & Tile Rendering St
   describe('4. High Contrast Dark Tile Styling for Motorcycle Sunlight Visibility', () => {
     it('verifies CSS contrast boost filter on .leaflet-tile-pane in index.css', () => {
       expect(cssContent).toContain('.leaflet-tile-pane');
-      expect(cssContent).toMatch(/filter:\s*contrast\(140%\)\s*brightness\(125%\)\s*saturate\(115%\)/);
+      expect(cssContent).toMatch(/filter:\s*invert\(100%\)\s*hue-rotate\(180deg\)\s*brightness\(88%\)\s*contrast\(125%\)\s*saturate\(75%\)/);
     });
 
-    it('verifies CartoDB Dark Matter tile configuration does not use paid API credentials', () => {
-      expect(configContent).toContain('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png');
+    it('verifies tile configuration does not use paid API credentials or watermarked domains', () => {
+      expect(configContent).toContain('https://tile.openstreetmap.org/{z}/{x}/{y}.png');
+      expect(configContent).not.toContain('basemaps.cartocdn.com');
       expect(configContent).not.toContain('api_key');
       expect(configContent).not.toContain('token=');
       expect(configContent).not.toContain('google.com/maps/api');

@@ -1,14 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, ArrowLeft, MapPin, Navigation, Volume2, Store, Clock, Route, ChevronDown, ExternalLink, Loader2 } from 'lucide-react';
+import { X, ArrowLeft, MapPin, Volume2, VolumeX, Crosshair, Store, Clock, Route, Loader2 } from 'lucide-react';
 import L from 'leaflet';
 import type { Order } from '../../types';
 import { formatCurrency } from '../../utils/formatting';
-import { openNavigation } from '../../utils/navigation';
-import { speakOrder, isSpeechMuted, cancelSpeech } from '../../utils/speech';
+import { speakOrder, isSpeechMuted, setSpeechMuted, cancelSpeech } from '../../utils/speech';
 import { resolveOrderCoordinates, calculateDistanceKm, estimateMotoEtaMinutes } from '../../utils/geocoding';
 import { fetchOsrmRoute } from '../../utils/routing';
 import { useGeolocation, BOLIVAR_CENTER } from '../../hooks/useGeolocation';
-import { useAuth } from '../../context/AuthContext';
 import { Badge } from '../common/Badge';
 import { CARTO_DARK_MATTER_URL, CARTO_TILE_OPTIONS, DEFAULT_MAP_ZOOM } from './mapConfig';
 import { createCadeteLocationIcon, createOrderDestinationIcon } from './mapIcons';
@@ -25,12 +23,9 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
   onClose,
   order
 }) => {
-  const { user } = useAuth();
-  const city = user?.settings?.cityDefault || 'San Carlos de Bolívar';
-  const country = user?.settings?.countryDefault || 'Argentina';
   const { location: cadeteLocation } = useGeolocation();
 
-  const [showNavMenu, setShowNavMenu] = useState<boolean>(false);
+  const [speechMuted, setSpeechMutedState] = useState<boolean>(() => isSpeechMuted());
   const [distanceKm, setDistanceKm] = useState<number>(0);
   const [etaMinutes, setEtaMinutes] = useState<number>(0);
   const [isLoadingRoute, setIsLoadingRoute] = useState<boolean>(false);
@@ -64,7 +59,7 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
     const initialEtaMinutes = estimateMotoEtaMinutes(initialDistanceKm);
     setDistanceKm(initialDistanceKm);
     setEtaMinutes(initialEtaMinutes);
-  }, [isOpen, order?.id, cadeteLocation?.lat, cadeteLocation?.lng]);
+  }, [isOpen, order?.id, cadeteLocation]);
 
   // R3: Auto speech readout (< 300ms, deduplicated by order.id)
   useEffect(() => {
@@ -227,12 +222,51 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
     }
   }, [isOpen, cadeteLocation?.lat, cadeteLocation?.lng]);
 
+  // Listen for global speech mute changes
+  useEffect(() => {
+    const handleMuteChange = (e: Event) => {
+      const customEvent = e as CustomEvent<boolean>;
+      setSpeechMutedState(customEvent.detail ?? isSpeechMuted());
+    };
+    window.addEventListener('cadete_os_speech_muted_changed', handleMuteChange);
+    return () => {
+      window.removeEventListener('cadete_os_speech_muted_changed', handleMuteChange);
+    };
+  }, []);
+
   if (!isOpen || !order) return null;
 
-  const handleExternalNav = (provider: 'google' | 'waze') => {
-    if (!order.address) return;
-    openNavigation(order.address, provider, city, country);
-    setShowNavMenu(false);
+  const handleFocusRoute = () => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (polylineRef.current) {
+      map.fitBounds(polylineRef.current.getBounds(), {
+        padding: [40, 40],
+        maxZoom: 16
+      });
+    } else if (order) {
+      const destCoords = resolveOrderCoordinates(order);
+      const originCoords: [number, number] = cadeteLocation
+        ? [cadeteLocation.lat, cadeteLocation.lng]
+        : BOLIVAR_CENTER;
+      map.fitBounds(L.latLngBounds([originCoords, destCoords]), {
+        padding: [40, 40],
+        maxZoom: 16
+      });
+    }
+  };
+
+  const handleVoiceAction = () => {
+    if (!order) return;
+    if (isSpeechMuted()) {
+      setSpeechMuted(false);
+      setSpeechMutedState(false);
+      speakOrder(order);
+    } else {
+      cancelSpeech();
+      speakOrder(order);
+    }
   };
 
   const handleSpeak = () => {
@@ -349,57 +383,41 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
           <div ref={mapContainerRef} className="w-full h-full" id="order-route-map-canvas" />
         </div>
 
-        {/* Modal Footer Controls (1-Tap Dismiss & External Navigation) */}
+        {/* Modal Footer Controls — 100% IN-APP CONTROLS (Zero External Redirects) */}
         <div className="p-4 border-t border-zinc-800/80 bg-zinc-900/95 flex items-center gap-2 flex-shrink-0">
-          {/* External GPS Dropdown */}
-          <div className="relative">
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => handleExternalNav('google')}
-                className="min-h-[52px] px-3.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/80 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
-                title="Abrir en Google Maps"
-              >
-                <Navigation className="w-4 h-4 text-emerald-400" />
-                <span>Cómo ir</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowNavMenu(!showNavMenu)}
-                className="min-h-[52px] w-10 rounded-2xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 flex items-center justify-center border border-zinc-700/80 transition-colors"
-                title="Elegir aplicación"
-              >
-                <ChevronDown className="w-3.5 h-3.5" />
-              </button>
-            </div>
+          {/* 1. Botón Enfocar Ruta / Destino */}
+          <button
+            type="button"
+            onClick={handleFocusRoute}
+            className="min-h-[52px] px-3.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/80 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
+            title="Enfocar ruta completa"
+            aria-label="Enfocar Ruta / Destino"
+          >
+            <Crosshair className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>Enfocar</span>
+          </button>
 
-            {showNavMenu && (
-              <div className="absolute left-0 bottom-full mb-2 w-44 bg-zinc-900 border border-zinc-700 rounded-2xl p-1.5 shadow-xl z-30 space-y-1">
-                <button
-                  type="button"
-                  onClick={() => handleExternalNav('google')}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-zinc-200 hover:bg-zinc-800 flex items-center justify-between"
-                >
-                  <span>Google Maps</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleExternalNav('waze')}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-zinc-200 hover:bg-zinc-800 flex items-center justify-between"
-                >
-                  <span>Waze</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
-                </button>
-              </div>
+          {/* 2. Control de Audio / Voz Integrado */}
+          <button
+            type="button"
+            onClick={handleVoiceAction}
+            className="min-h-[52px] w-10 rounded-2xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-zinc-100 flex items-center justify-center border border-zinc-700/80 transition-colors active:scale-95 shrink-0"
+            title={speechMuted ? "Voz silenciada (Tocar para activar)" : "Repetir lectura por voz"}
+            aria-label={speechMuted ? "Voz silenciada" : "Escuchar viaje por voz"}
+          >
+            {speechMuted ? (
+              <VolumeX className="w-4 h-4 text-zinc-500" />
+            ) : (
+              <Volume2 className="w-4 h-4 text-emerald-400" />
             )}
-          </div>
+          </button>
 
-          {/* Primary Dismiss Button */}
+          {/* 3. Botón Principal: Volver a Viajes */}
           <button
             type="button"
             onClick={onClose}
             className="flex-1 min-h-[52px] px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-950/30 transition-all active:scale-[0.98]"
+            aria-label="Volver a Viajes"
           >
             <span>Volver a Viajes</span>
           </button>

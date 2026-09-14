@@ -321,13 +321,18 @@ describe('Milestone 1 — OrderMapModal.tsx Ergonomics & Touch Target Audit', ()
     expect(mapModalSrc).toContain('aria-label="Tocar para cerrar"');
     expect(mapModalSrc).toContain('min-h-[44px]');
 
-    // Voice & external navigation preservation
+    // Voice & in-app controls
     expect(mapModalSrc).toContain('Volume2');
     expect(mapModalSrc).toContain('speakOrder(order)');
     expect(mapModalSrc).toContain('Volver a Viajes');
     expect(mapModalSrc).toContain('flex-1 min-h-[52px]');
     expect(mapModalSrc).toContain('min-h-[52px] px-3.5');
     expect(mapModalSrc).toContain('min-h-[52px] w-10');
+    expect(mapModalSrc).toContain('Enfocar Ruta');
     expect(mapModalSrc).toContain('onClick={onClose}');
+
+    // Strict zero external navigation
+    expect(mapModalSrc).not.toContain('openNavigation(');
+    expect(mapModalSrc).not.toContain('ExternalLink');
   });
 });

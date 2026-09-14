@@ -455,7 +455,7 @@ describe('Adversarial Challenge 3: Static Ergonomics & Touch Target Inspection',
     expect(dialogSrc).toContain('z-50');
   });
 
-  it('ensures OrderMapModal.tsx preserves speech repeat, external navigation, and Left Back button', () => {
+  it('ensures OrderMapModal.tsx provides 100% in-app controls, speech repeat, and Left Back button', () => {
     const mapModalSrc = getFileContent('src/components/map/OrderMapModal.tsx');
 
     // Left Back button >= 44px
@@ -467,13 +467,20 @@ describe('Adversarial Challenge 3: Static Ergonomics & Touch Target Inspection',
     expect(mapModalSrc).toContain('aria-label="Tocar para cerrar"');
     expect(mapModalSrc).toContain('min-h-[44px]');
 
-    // Speech & external navigation tokens
+    // Speech & 100% in-app navigation tokens
     expect(mapModalSrc).toContain('Volume2');
     expect(mapModalSrc).toContain('speakOrder(order)');
     expect(mapModalSrc).toContain('Volver a Viajes');
     expect(mapModalSrc).toContain('flex-1 min-h-[52px]');
     expect(mapModalSrc).toContain('min-h-[52px] px-3.5');
     expect(mapModalSrc).toContain('min-h-[52px] w-10');
+    expect(mapModalSrc).toContain('Enfocar Ruta');
     expect(mapModalSrc).toContain('onClick={onClose}');
+
+    // Zero external navigation links
+    expect(mapModalSrc).not.toContain('openNavigation(');
+    expect(mapModalSrc).not.toContain('Google Maps');
+    expect(mapModalSrc).not.toContain('Waze');
+    expect(mapModalSrc).not.toContain('ExternalLink');
   });
 });

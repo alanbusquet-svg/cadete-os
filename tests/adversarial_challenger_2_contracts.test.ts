@@ -61,13 +61,14 @@ describe('CHALLENGER 2 — Adversarial Verification: API Contracts, Zero-Paid-AP
       }
     });
 
-    it('verifies CartoDB Dark Matter tile URL contains zero paid API keys or tracking tokens', () => {
+    it('verifies tile URL contains zero paid API keys, tracking tokens, or watermarks', () => {
       expect(CARTO_DARK_MATTER_URL).toBe(
-        'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+        'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
       );
       expect(CARTO_DARK_MATTER_URL).not.toContain('key=');
       expect(CARTO_DARK_MATTER_URL).not.toContain('token=');
       expect(CARTO_DARK_MATTER_URL).not.toContain('apikey=');
+      expect(CARTO_DARK_MATTER_URL).not.toContain('basemaps.cartocdn.com');
     });
 
     it('verifies OSRM endpoint points to free public OpenStreetMap service without credentials', () => {
