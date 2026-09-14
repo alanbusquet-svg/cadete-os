@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, type Firestore } from 'firebase/firestore';
 
 // Firebase Production & Local Spark Fallback Config
 const firebaseConfig = {
@@ -20,5 +20,16 @@ if (!getApps().length) {
 }
 
 export const auth: Auth = getAuth(app);
-export const db: Firestore = getFirestore(app);
+
+// Initialize Firestore with ignoreUndefinedProperties: true so undefined optional fields never crash writes
+let firestoreDb: Firestore;
+try {
+  firestoreDb = initializeFirestore(app, {
+    ignoreUndefinedProperties: true
+  });
+} catch {
+  firestoreDb = getFirestore(app);
+}
+
+export const db: Firestore = firestoreDb;
 export default app;

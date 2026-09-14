@@ -89,6 +89,23 @@ export async function createInitialUserProfile(firebaseUser: User): Promise<User
 }
 
 /**
+ * Recursively strips undefined values so Firestore never rejects the write
+ */
+export function sanitizeForFirestore<T extends Record<string, any>>(obj: T): Record<string, any> {
+  const clean: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+        clean[key] = sanitizeForFirestore(value);
+      } else {
+        clean[key] = value;
+      }
+    }
+  }
+  return clean;
+}
+
+/**
  * Persists any generic multi-tenant document (order, expense, business, etc.) into Firestore.
  */
 export async function saveDocument<T extends { id: string; userId: string }>(
@@ -98,7 +115,8 @@ export async function saveDocument<T extends { id: string; userId: string }>(
   if (!data.id) throw new Error(`Cannot save document to ${collectionName} without id`);
   if (!data.userId) throw new Error(`Cannot save document to ${collectionName} without userId`);
   const docRef = doc(db, collectionName, data.id);
-  await setDoc(docRef, data, { merge: true });
+  const cleanData = sanitizeForFirestore(data);
+  await setDoc(docRef, cleanData, { merge: true });
 }
 
 /**
@@ -111,7 +129,8 @@ export async function updateDocument<T extends Record<string, any>>(
 ): Promise<void> {
   if (!docId) throw new Error(`Cannot update document in ${collectionName} without docId`);
   const docRef = doc(db, collectionName, docId);
-  await updateDoc(docRef, partial as UpdateData<DocumentData>);
+  const cleanData = sanitizeForFirestore(partial as Record<string, any>);
+  await updateDoc(docRef, cleanData as UpdateData<DocumentData>);
 }
 
 /**
