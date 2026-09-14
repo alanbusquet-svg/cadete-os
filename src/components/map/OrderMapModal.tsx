@@ -37,6 +37,7 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const cadeteMarkerRef = useRef<L.Marker | null>(null);
   const polylineRef = useRef<L.Polyline | null>(null);
   const hasSpokenRef = useRef<string | null>(null);
 
@@ -93,6 +94,7 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
     if (!isOpen || !order || !mapContainerRef.current) return;
 
     let isMounted = true;
+    let resizeObserver: ResizeObserver | null = null;
     const abortController = new AbortController();
 
     // Small delay to allow the modal sheet DOM animation to settle
@@ -104,6 +106,7 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
         polylineRef.current = null;
+        cadeteMarkerRef.current = null;
       }
 
       const destCoords = resolveOrderCoordinates(order);
@@ -122,7 +125,8 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
         L.tileLayer(CARTO_DARK_MATTER_URL, CARTO_TILE_OPTIONS).addTo(map);
 
         // Cadete GPS marker
-        L.marker(originCoords, { icon: createCadeteLocationIcon() }).addTo(map);
+        const cadeteMarker = L.marker(originCoords, { icon: createCadeteLocationIcon() }).addTo(map);
+        cadeteMarkerRef.current = cadeteMarker;
 
         // Destination marker
         L.marker(destCoords, {
@@ -147,6 +151,16 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
 
         // Ensure canvas tiles fill container cleanly
         map.invalidateSize();
+
+        // ResizeObserver on mapContainerRef.current for robust layout sizing
+        if (typeof ResizeObserver !== 'undefined' && mapContainerRef.current) {
+          resizeObserver = new ResizeObserver(() => {
+            if (mapContainerRef.current && mapContainerRef.current.clientHeight > 0) {
+              map.invalidateSize();
+            }
+          });
+          resizeObserver.observe(mapContainerRef.current);
+        }
 
         // Concurrently fetch real street driving route from OSRM
         setIsLoadingRoute(true);
@@ -193,13 +207,25 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
       isMounted = false;
       abortController.abort();
       clearTimeout(timer);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
         polylineRef.current = null;
+        cadeteMarkerRef.current = null;
       }
     };
-  }, [isOpen, order?.id, cadeteLocation?.lat, cadeteLocation?.lng]);
+  }, [isOpen, order?.id]);
+
+  // Separate effect for tracking cadete GPS position changes without destroying the map
+  useEffect(() => {
+    if (!isOpen || !cadeteMarkerRef.current) return;
+    if (cadeteLocation) {
+      cadeteMarkerRef.current.setLatLng([cadeteLocation.lat, cadeteLocation.lng]);
+    }
+  }, [isOpen, cadeteLocation?.lat, cadeteLocation?.lng]);
 
   if (!isOpen || !order) return null;
 

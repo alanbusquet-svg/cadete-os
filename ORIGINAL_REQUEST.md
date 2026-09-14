@@ -187,3 +187,78 @@ Los tests existentes relevantes que NO deben romperse:
 - `tests/navigation.test.ts` — 11 tests de navegación GPS
 
 Correr `npm run test` en `d:\SaaS de delivery\SaaS` para verificar.
+
+## 2026-09-14T02:25:37Z
+
+# Teamwork Project Prompt — Final
+
+> Status: 🚀 Launched
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+> Requested team: Equipo completo de QA Automation Engineers, UI/UX Mobile Designers y Fullstack Specialists
+
+Auditoría integral profunda, verificación técnica automatizada E2E, corrección de defectos críticos (incluyendo el renderizado del mapa negro/roto en móvil) y optimización ergonómica total para Cadete OS, garantizando perfección absoluta para uso en celular arriba de la moto.
+
+Working directory: d:\SaaS de delivery\SaaS
+Integrity mode: development
+
+---
+
+## Contexto del Proyecto y Misión
+
+- **Stack:** React 18 + Vite 5 + TypeScript estricto + Tailwind CSS Dark Mode (`bg-zinc-950`).
+- **Filosofía:** Mobile-First ultra rápido para repartidores independientes en moto en San Carlos de Bolívar.
+- **Falla Crítica Reportada por el Usuario:** Al ingresar a la pestaña "Mapa", aparece el fondo negro/roto en lugar de visualizarse nítidamente las calles y el mapa.
+- **Alcance Requerido:** Testeo absoluto y minucioso de cada botón, modal, cálculo, formulario, flujo E2E y corrección inmediata hasta lograr 100% de calidad Enterprise.
+
+---
+
+## Requirements
+
+### R1. Reparación Integral y Alto Contraste del Sistema de Mapas (MapView & OrderMapModal)
+- **Diagnóstico y solución del mapa en negro:** Corregir el ciclo de vida de Leaflet en `src/components/map/MapView.tsx` y `OrderMapModal.tsx`. Evitar que la recreación continua de arrays de coordenadas (`effectiveCenter`) desmonte (`map.remove()`) y destruya el mapa en cada tick del GPS.
+- **Renderizado de tiles y contraste:** Asegurar que los tiles se carguen nítidamente con `invalidateSize()` retardado y reactivo al cambio de pestaña y redimensionamiento de pantalla. Garantizar contraste visible para calles y nombres bajo la luz del sol en moto, manteniendo la estética Dark Mode de Cadete OS (utilizando tiles con calles bien definidas y capas de alto contraste).
+- **Marcadores interactivos y rutas:** Verificar que los pines de pedidos (monto, método de pago, estado) y el radar GPS del cadete se rendericen siempre visibles, clickeables y con popup/ruta funcionando a la perfección.
+
+### R2. Verificación y Blindaje de Flujos E2E de Viajes (Orders)
+- Testeo exhaustivo de la creación de viajes (`OrderFormModal`) con una mano: validación de zonas (planta urbana, barrios), importes, comercios asociados, selector de pago (efectivo/transferencia/cta cte).
+- Comprobación de que el botón "Cómo ir" en cada tarjeta abra fluidamente el mapa integrado sin salir a Google Maps, con lectura automática por voz y trazado OSRM.
+- Verificación del botón de voz 🔊 en tarjeta y de las acciones de cobrar/liquidar viaje en tiempo real.
+
+### R3. Auditoría de Finanzas, Arqueo de Caja y Comercios
+- Comprobación matemática exacta del Arqueo de Caja:
+  - `Efectivo en Bolsillo = Cobrado Efectivo - Gastos Efectivo + Fondo Inicial`
+  - `Dinero en Cuenta = Cobrado Transferencias - Gastos Transferencias`
+  - `Ganancia Neta = Facturado Pedidos - Total Gastos`
+- Verificación del módulo de Comercios (`BusinessList`, `BusinessFormModal`): creación, edición, eliminación y liquidación de deuda por lotes con generación de mensaje para WhatsApp.
+
+### R4. Taller, Odómetro Virtual de Aceite y Turnos
+- Comprobación del semáforo virtual de cambio de aceite (Verde / Amarillo / Rojo) según viajes y días acumulados sin tablero.
+- Registro de mantenimiento (`MaintenanceFormModal`), reseteo de contador y persistencia histórica.
+- Inicio y cierre de turnos (`Shift`), control de fondo de cambio inicial (`startingCash`).
+
+### R5. Ergonomía Táctil Mobile-First, Navegación "Atrás" y Persistencia
+- Touch targets rigurosamente $\ge 52\text{px}$ en todos los botones de acción principales y $\ge 44\text{px}$ en botones secundarios/tiradores.
+- Botones de "Cancelar" o "Volver sin Guardar" siempre apilados debajo de "Guardar", a ancho completo (`w-full`), accesibles con el pulgar izquierdo.
+- Intercepción del botón físico/gestual "Atrás" de Android/iOS mediante History API (`popstate`): cerrar modales abiertos antes de salir de la app, y volver a la pestaña "orders" antes de salir de la PWA.
+- Persistencia local inmediata (0ms de latencia) y sincronización con Firestore bajo las reglas de seguridad multi-tenant.
+
+---
+
+## Acceptance Criteria
+
+### Sistema de Mapa y Rutas (R1)
+- [ ] Al ingresar a la pestaña "Mapa" (`MapView`), el mapa renderiza inmediatamente las calles, avenidas y nombres con total claridad y contraste (cero fondos negros vacíos o contenedores rotos).
+- [ ] Las actualizaciones del GPS del cadete mueven suavemente el marcador sin destruir ni desmontar la instancia del mapa.
+- [ ] En `OrderMapModal`, la ruta se visualiza con la polilínea OSRM por las calles de Bolívar y el mapa se ajusta (`fitBounds`) a los límites correctos.
+
+### Flujos de Negocio y Pruebas E2E (R2, R3, R4)
+- [ ] Creación, edición y borrado de viajes, gastos, comercios y mantenimientos funcionan con persistencia inmediata y 0 regresiones.
+- [ ] Los cálculos de arqueo de caja, ganancia neta y deudas de comercios son matemáticamente exactos al centavo.
+- [ ] Los mensajes generados para WhatsApp contienen el formato y texto esperado sin caracteres rotos.
+- [ ] El odómetro virtual de aceite calcula con precisión la diferencia de pedidos y días desde el último service.
+
+### Ergonomía y Navegación Móvil (R5)
+- [ ] Todos los botones de formularios y modales cumplen con las dimensiones táctiles para uso con guantes ($\ge 52\text{px}$).
+- [ ] Presionar el botón "Atrás" del navegador o celular cierra cualquier modal activo sin salir de Cadete OS.
+- [ ] `npm run test` pasa el 100% de los tests (más de 610 tests automatizados, 0 fallos).
+- [ ] `npm run build` compila con código de salida 0 sin errores de TypeScript estricto.

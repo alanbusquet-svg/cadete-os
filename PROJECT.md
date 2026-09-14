@@ -59,4 +59,4 @@
 - `src/components/orders/OrderCard.tsx`: Order card with in-app "Cómo ir" and speech button
 - `src/components/orders/OrderList.tsx`: Orders view and modal host
 - `tests/`: Vitest test suites (34+ suites, 592+ tests)
-- `dist/`: Freshly compiled PWA bundle (`index-DH1DXkv1.js`) and Service Worker
+- `dist/`: Freshly compiled PWA bundle (`index-CFOHLy0D.js`) and Service Worker

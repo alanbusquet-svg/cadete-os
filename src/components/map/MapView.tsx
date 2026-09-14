@@ -43,67 +43,16 @@ export const MapView: React.FC = () => {
     mapInstanceRef.current.setView(center, DEFAULT_MAP_ZOOM, { animate: true });
   }, [cadeteLocation, effectiveCenter]);
 
-  // Initialize Leaflet Map
-  useEffect(() => {
-    if (!mapContainerRef.current || mapInstanceRef.current) return;
+  // Store initial center reference without triggering re-runs on GPS updates
+  const initialCenterRef = useRef<[number, number]>(
+    cadeteLocation ? [cadeteLocation.lat, cadeteLocation.lng] : BOLIVAR_CENTER
+  );
 
-    try {
-      const map = L.map(mapContainerRef.current, {
-        center: effectiveCenter,
-        zoom: DEFAULT_MAP_ZOOM,
-        zoomControl: false,
-        attributionControl: true
-      });
-
-      L.tileLayer(CARTO_DARK_MATTER_URL, CARTO_TILE_OPTIONS).addTo(map);
-
-      // Dedicated layer group for order pins
-      const orderGroup = L.layerGroup().addTo(map);
-      orderMarkersLayerRef.current = orderGroup;
-
-      mapInstanceRef.current = map;
-
-      // Invalidate size once container settles
-      const timer = setTimeout(() => {
-        map.invalidateSize();
-      }, 120);
-
-      return () => {
-        clearTimeout(timer);
-        map.remove();
-        mapInstanceRef.current = null;
-        cadeteMarkerRef.current = null;
-        orderMarkersLayerRef.current = null;
-      };
-    } catch {
-      // Fallback
-    }
-  }, [effectiveCenter]);
-
-  // Update Cadete GPS marker reactively
-  useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
-
-    const coords: [number, number] = cadeteLocation
-      ? [cadeteLocation.lat, cadeteLocation.lng]
-      : BOLIVAR_CENTER;
-
-    if (cadeteMarkerRef.current) {
-      cadeteMarkerRef.current.setLatLng(coords);
-    } else {
-      cadeteMarkerRef.current = L.marker(coords, {
-        icon: createCadeteLocationIcon(),
-        zIndexOffset: 1000
-      }).addTo(map);
-    }
-  }, [cadeteLocation]);
-
-  // Update Order markers reactively
-  useEffect(() => {
-    const map = mapInstanceRef.current;
-    const layerGroup = orderMarkersLayerRef.current;
-    if (!map || !layerGroup) return;
+  // Synchronize order markers safely
+  const updateOrderMarkers = useCallback((map?: L.Map, layerGroupParam?: L.LayerGroup) => {
+    const mapInstance = map || mapInstanceRef.current;
+    const layerGroup = layerGroupParam || orderMarkersLayerRef.current;
+    if (!mapInstance || !layerGroup) return;
 
     layerGroup.clearLayers();
 
@@ -154,6 +103,101 @@ export const MapView: React.FC = () => {
       layerGroup.addLayer(marker);
     });
   }, [displayedOrders, selectedOrder]);
+
+  // Initialize Leaflet Map once on mount ([])
+  useEffect(() => {
+    if (!mapContainerRef.current || mapInstanceRef.current) return;
+
+    let resizeObserver: ResizeObserver | null = null;
+    let timer1: ReturnType<typeof setTimeout> | null = null;
+    let timer2: ReturnType<typeof setTimeout> | null = null;
+
+    try {
+      const map = L.map(mapContainerRef.current, {
+        center: initialCenterRef.current,
+        zoom: DEFAULT_MAP_ZOOM,
+        zoomControl: false,
+        attributionControl: true
+      });
+
+      L.tileLayer(CARTO_DARK_MATTER_URL, CARTO_TILE_OPTIONS).addTo(map);
+
+      // Dedicated layer group for order pins
+      const orderGroup = L.layerGroup().addTo(map);
+      orderMarkersLayerRef.current = orderGroup;
+
+      mapInstanceRef.current = map;
+
+      // Invalidate size once container settles (immediate and multi-stage)
+      map.invalidateSize();
+      timer1 = setTimeout(() => {
+        map.invalidateSize();
+      }, 150);
+      timer2 = setTimeout(() => {
+        map.invalidateSize();
+      }, 400);
+
+      // ResizeObserver on mapContainerRef.current
+      if (typeof ResizeObserver !== 'undefined' && mapContainerRef.current) {
+        resizeObserver = new ResizeObserver(() => {
+          if (mapContainerRef.current && mapContainerRef.current.clientHeight > 0) {
+            map.invalidateSize();
+          }
+        });
+        resizeObserver.observe(mapContainerRef.current);
+      }
+
+      // Initial render of cadete marker if GPS is already available
+      const initCoords: [number, number] = cadeteLocation
+        ? [cadeteLocation.lat, cadeteLocation.lng]
+        : BOLIVAR_CENTER;
+      cadeteMarkerRef.current = L.marker(initCoords, {
+        icon: createCadeteLocationIcon(),
+        zIndexOffset: 1000
+      }).addTo(map);
+
+      // Initial order markers sync
+      updateOrderMarkers(map, orderGroup);
+
+      return () => {
+        if (resizeObserver) {
+          resizeObserver.disconnect();
+        }
+        if (timer1) clearTimeout(timer1);
+        if (timer2) clearTimeout(timer2);
+        map.remove();
+        mapInstanceRef.current = null;
+        cadeteMarkerRef.current = null;
+        orderMarkersLayerRef.current = null;
+      };
+    } catch {
+      // Fallback
+    }
+  }, []);
+
+  // Update Cadete GPS marker reactively without destroying the map
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    const coords: [number, number] = cadeteLocation
+      ? [cadeteLocation.lat, cadeteLocation.lng]
+      : BOLIVAR_CENTER;
+
+    if (cadeteMarkerRef.current) {
+      cadeteMarkerRef.current.setLatLng(coords);
+    } else {
+      cadeteMarkerRef.current = L.marker(coords, {
+        icon: createCadeteLocationIcon(),
+        zIndexOffset: 1000
+      }).addTo(map);
+    }
+  }, [cadeteLocation]);
+
+  // Update Order markers reactively
+  useEffect(() => {
+    updateOrderMarkers();
+  }, [updateOrderMarkers]);
 
   return (
     <div className="flex flex-col h-full space-y-3 pb-2">

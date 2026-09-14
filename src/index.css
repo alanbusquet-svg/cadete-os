@@ -53,6 +53,11 @@
   outline: none;
 }
 
+/* High-contrast boost for CartoDB Dark Matter under outdoor motorcycle sunlight */
+.leaflet-tile-pane {
+  filter: contrast(140%) brightness(125%) saturate(115%);
+}
+
 /* Dark mode popup styling */
 .leaflet-popup-content-wrapper,
 .leaflet-popup-tip {

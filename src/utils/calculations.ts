@@ -40,10 +40,15 @@ export function calculateDailySummary(
 
     if (order.paidBy === 'customer') {
       // Cobrado directamente al cliente
-      if (order.paymentMethod === 'cash') {
-        cashCollected += amount;
+      if (order.settled) {
+        if (order.paymentMethod === 'cash') {
+          cashCollected += amount;
+        } else {
+          transferCollected += amount;
+        }
       } else {
-        transferCollected += amount;
+        // Pendiente de cobro al cliente (no entra a caja aún)
+        unsettledRevenue += amount;
       }
     } else if (order.paidBy === 'business') {
       // Paga el comercio
