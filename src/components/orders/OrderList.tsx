@@ -55,6 +55,7 @@ export const OrderList: React.FC = () => {
   };
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (isModalOpen || selectedOrderForMap !== null || orderToDelete !== null) return;
     if (e.touches.length !== 1) return;
     if (isInteractiveElement(e.target)) {
       touchStartRef.current = null;
@@ -67,6 +68,10 @@ export const OrderList: React.FC = () => {
   };
 
   const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (isModalOpen || selectedOrderForMap !== null || orderToDelete !== null) {
+      touchStartRef.current = null;
+      return;
+    }
     if (!touchStartRef.current) return;
     const touch = e.changedTouches[0];
     if (!touch) {
@@ -115,7 +120,7 @@ export const OrderList: React.FC = () => {
           ? swipeDirection === 'right'
             ? 'opacity-85 translate-x-1'
             : 'opacity-85 -translate-x-1'
-          : 'opacity-100 translate-x-0'
+          : 'opacity-100'
       )}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}

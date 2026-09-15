@@ -37,13 +37,29 @@ export const OrderFormModal: React.FC<OrderFormModalProps> = ({ isOpen, onClose 
   // Pre-select first business when modal opens & reset accordion to collapsed state
   useEffect(() => {
     if (isOpen) {
-      if (activeBusinesses.length > 0 && !businessId) {
-        setBusinessId(activeBusinesses[0]?.id || '');
+      if (activeBusinesses.length > 0) {
+        const validBizId =
+          businessId && activeBusinesses.some((b) => b.id === businessId)
+            ? businessId
+            : activeBusinesses[0]!.id;
+        if (validBizId !== businessId) {
+          setBusinessId(validBizId);
+        }
+        const biz = activeBusinesses.find((b) => b.id === validBizId);
+        if (biz) {
+          if (zone === 'planta_urbana') {
+            setAmount(String(biz.defaultPrices.plantaUrbana || ''));
+          } else if (zone === 'barrio_cerca') {
+            setAmount(String(biz.defaultPrices.barrioCerca || ''));
+          } else if (zone === 'barrio_lejos') {
+            setAmount(String(biz.defaultPrices.barrioLejos || ''));
+          }
+        }
       }
       setShowMoreOptions(false);
       setError('');
     }
-  }, [isOpen, activeBusinesses, businessId]);
+  }, [isOpen, activeBusinesses]);
 
   // Selected business object
   const selectedBusiness = activeBusinesses.find((b) => b.id === businessId);
@@ -113,6 +129,10 @@ export const OrderFormModal: React.FC<OrderFormModalProps> = ({ isOpen, onClose 
     setNotes('');
     setShowMoreOptions(false);
     setError('');
+    setZone('planta_urbana');
+    setPaidBy('customer');
+    setPaymentMethod('cash');
+    setSettled(true);
     onClose();
   };
 
@@ -122,6 +142,10 @@ export const OrderFormModal: React.FC<OrderFormModalProps> = ({ isOpen, onClose 
     setNotes('');
     setShowMoreOptions(false);
     setError('');
+    setZone('planta_urbana');
+    setPaidBy('customer');
+    setPaymentMethod('cash');
+    setSettled(true);
     onClose();
   };
 
@@ -385,8 +409,13 @@ export const OrderFormModal: React.FC<OrderFormModalProps> = ({ isOpen, onClose 
           </div>
         )}
 
-        {/* CORE 5: Botones de Acción */}
-        <div className="pt-2 flex flex-col gap-2">
+        {/* CORE 5: Botones de Acción (Sticky al fondo del modal para alcance inmediato del pulgar) */}
+        <div className="sticky bottom-0 pt-3 pb-1 bg-zinc-900/95 backdrop-blur-sm border-t border-zinc-800/80 -mx-6 -mb-6 px-6 mt-auto flex flex-col gap-2 z-10">
+          {error && (
+            <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold animate-in fade-in">
+              {error}
+            </div>
+          )}
           <Button
             type="submit"
             variant="primary"

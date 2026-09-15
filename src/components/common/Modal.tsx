@@ -1,4 +1,5 @@
-import React, { type ReactNode } from 'react';
+import React, { type ReactNode, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ArrowLeft } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useModalBackHandler } from '../../hooks/useModalBackHandler';
@@ -30,6 +31,17 @@ export const Modal: React.FC<ModalProps> = ({
     modalId
   });
 
+  // Lock body scroll while modal is open to prevent underlying page jumping
+  useEffect(() => {
+    if (!isOpen) return;
+    if (typeof document === 'undefined') return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const sizeClasses = {
@@ -38,15 +50,20 @@ export const Modal: React.FC<ModalProps> = ({
     full: 'max-w-full h-[95vh]'
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+  const modalNode = (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => e.stopPropagation()}
+    >
       {/* Backdrop click */}
       <div className="fixed inset-0 cursor-pointer" onClick={handleProgrammaticClose} aria-hidden="true" />
 
       {/* Modal Container */}
       <div
         className={cn(
-          'relative w-full bg-zinc-900 border-t sm:border border-zinc-800 rounded-t-[2rem] sm:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] z-10 transition-transform duration-300 animate-in slide-in-from-bottom-8',
+          'relative w-full bg-zinc-900 border-t sm:border border-zinc-800 rounded-t-[2rem] sm:rounded-3xl shadow-2xl flex flex-col max-h-[90dvh] sm:max-h-[88vh] z-10 transition-transform duration-300 animate-in slide-in-from-bottom-8 overflow-hidden',
           sizeClasses[size]
         )}
       >
@@ -106,5 +123,10 @@ export const Modal: React.FC<ModalProps> = ({
       </div>
     </div>
   );
+
+  if (typeof document !== 'undefined' && document.body) {
+    return createPortal(modalNode, document.body);
+  }
+  return modalNode;
 };
 

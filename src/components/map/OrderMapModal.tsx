@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ArrowLeft, MapPin, Volume2, VolumeX, Crosshair, Store, Clock, Route, Loader2, Sun, Moon } from 'lucide-react';
 import L from 'leaflet';
 import type { Order } from '../../types';
@@ -43,6 +44,17 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
     onClose,
     modalId: 'order-map'
   });
+
+  // Lock body scroll while route map modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+    if (typeof document === 'undefined') return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
 
   // Sync initial Haversine distance and ETA metrics immediately on open
   useEffect(() => {
@@ -282,13 +294,18 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm">
+  const modalNode = (
+    <div
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm"
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => e.stopPropagation()}
+    >
       {/* 1-Tap Backdrop Dismissal */}
       <div className="fixed inset-0 cursor-pointer" onClick={onClose} aria-hidden="true" />
 
       {/* Bottom Sheet Modal Container */}
-      <div className="relative w-full max-w-lg bg-zinc-950 border-t sm:border border-zinc-800 rounded-t-[2.5rem] sm:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] h-[88vh] sm:h-auto overflow-hidden z-10">
+      <div className="relative w-full max-w-lg bg-zinc-950 border-t sm:border border-zinc-800 rounded-t-[2.5rem] sm:rounded-3xl shadow-2xl flex flex-col max-h-[92dvh] h-[88vh] sm:h-auto overflow-hidden z-10">
         {/* Mobile Drag Indicator Bar - Interactive touch target */}
         <button
           type="button"
@@ -446,4 +463,9 @@ export const OrderMapModal: React.FC<OrderMapModalProps> = ({
       </div>
     </div>
   );
+
+  if (typeof document !== 'undefined' && document.body) {
+    return createPortal(modalNode, document.body);
+  }
+  return modalNode;
 };
